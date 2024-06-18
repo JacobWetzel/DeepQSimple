@@ -1,0 +1,22 @@
+# Hyperparameters
+model:
+  alpha: 0.001  # Learning rate
+  gamma: 0.99  # Discount factor
+  epsilon: 1.0  # Exploration rate
+  epsilon_min: 0.1
+  epsilon_decay: 0.995
+  batch_size: 64
+  memory_size: 10000
+  num_episodes: 1000
+  update_target_freq: 10  # Frequency to update the target network
+
+env:
+  height: 100
+  width: 100
+  obs_dim: 2
+
+# Environment parameters
+width: 100
+height: 100
+destination_pos: [50, 50]
+obs_dim: 4
