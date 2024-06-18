@@ -1,7 +1,8 @@
 import random
-import numpy as np
-import tensorflow as tf
 from collections import deque
+
+import numpy as np
+import torch
 
 # Hyperparameters
 alpha = 0.001  # Learning rate
@@ -20,20 +21,10 @@ numSquares = 10
 destination_pos = (1500 // 6, 100)
 
 # Define the neural network
-model = tf.keras.models.Sequential([
-    tf.keras.layers.Input(shape=(3,)),
-    tf.keras.layers.Dense(24, activation='relu'),
-    tf.keras.layers.Dense(24, activation='relu'),
-    tf.keras.layers.Dense(5, activation='linear')  # 5 actions
-])
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=alpha), loss='mse')
-
-# Target network
-target_model = tf.keras.models.clone_model(model)
-target_model.set_weights(model.get_weights())
 
 # Experience replay memory
 memory = deque(maxlen=memory_size)
+
 
 class MySquare:
     def __init__(self, seed):
@@ -59,14 +50,29 @@ class MySquare:
     def deactivate(self):
         self.active = False
 
+
 def isCol(sq):
-    if(((sq.xPos >= destination_pos[0] and sq.xPos <= destination_pos[0] + 10) or (sq.xPos + 10 >= destination_pos[0] and sq.xPos + 10 <= destination_pos[0] + 10)) and ((sq.yPos >= destination_pos[1] and sq.yPos <= destination_pos[1] + 10) or (sq.yPos + 10 >= destination_pos[1] and sq.yPos + 10 <= destination_pos[1] + 10))):
+    if (
+        (sq.xPos >= destination_pos[0] and sq.xPos <= destination_pos[0] + 10)
+        or (
+            sq.xPos + 10 >= destination_pos[0]
+            and sq.xPos + 10 <= destination_pos[0] + 10
+        )
+    ) and (
+        (sq.yPos >= destination_pos[1] and sq.yPos <= destination_pos[1] + 10)
+        or (
+            sq.yPos + 10 >= destination_pos[1]
+            and sq.yPos + 10 <= destination_pos[1] + 10
+        )
+    ):
         return True
     return False
+
 
 def get_state(squares, current_square_index):
     active_square = squares[current_square_index]
     return np.array([active_square.xPos, active_square.yPos, current_square_index])
+
 
 def choose_action(state, epsilon):
     if np.random.rand() < epsilon:
@@ -75,8 +81,10 @@ def choose_action(state, epsilon):
         q_values = model.predict(state.reshape(1, -1), verbose=0)
         return np.argmax(q_values[0])
 
+
 def remember(state, action, reward, next_state, done):
     memory.append((state, action, reward, next_state, done))
+
 
 def replay():
     if len(memory) < batch_size:
@@ -86,68 +94,76 @@ def replay():
     for state, action, reward, next_state, done in minibatch:
         target = reward
         if not done:
-            target += gamma * np.amax(target_model.predict(next_state.reshape(1, -1), verbose=0)[0])
+            target += gamma * np.amax(
+                target_model.predict(next_state.reshape(1, -1), verbose=0)[0]
+            )
         target_f = model.predict(state.reshape(1, -1), verbose=0)
         target_f[0][action] = target
         model.fit(state.reshape(1, -1), target_f, epochs=1, verbose=0)
 
+
 def update_target_model():
     target_model.set_weights(model.get_weights())
 
+
 # Initialize squares
-squares = [MySquare(i + 1) for i in range(numSquares)]
-squares[0].activate()
+def train():
+    squares = [MySquare(i + 1) for i in range(numSquares)]
+    squares[0].activate()
 
-current_square_index = 0
+    current_square_index = 0
 
-for e in range(num_episodes):
-    state = get_state(squares, current_square_index)
-    total_reward = 0
-    running = True
-    step = 0
-    while running:
-        action = choose_action(state, epsilon)
-        if action == 0:
-            direction = [0, -1]
-        elif action == 1:
-            direction = [0, 1]
-        elif action == 2:
-            direction = [-1, 0]
-        elif action == 3:
-            direction = [1, 0]
-        elif action == 4:
-            squares[current_square_index].deactivate()
-            current_square_index = (current_square_index + 1) % numSquares
-            squares[current_square_index].activate()
-            direction = [0, 0]
+    for e in range(num_episodes):
+        state = get_state(squares, current_square_index)
+        total_reward = 0
+        running = True
+        step = 0
+        while running:
+            action = choose_action(state, epsilon)
+            if action == 0:
+                direction = [0, -1]
+            elif action == 1:
+                direction = [0, 1]
+            elif action == 2:
+                direction = [-1, 0]
+            elif action == 3:
+                direction = [1, 0]
+            elif action == 4:
+                squares[current_square_index].deactivate()
+                current_square_index = (current_square_index + 1) % numSquares
+                squares[current_square_index].activate()
+                direction = [0, 0]
 
-        if squares[current_square_index].active:
-            squares[current_square_index].moveInDir(direction)
+            if squares[current_square_index].active:
+                squares[current_square_index].moveInDir(direction)
 
+            if (
+                squares[current_square_index].xPos >= 1500
+                or squares[current_square_index].xPos <= 0
+                or squares[current_square_index].yPos >= 1000
+                or squares[current_square_index].yPos <= 0
+            ):
+                squares[current_square_index].xPos = 1500 // 2
+                squares[current_square_index].yPos = (1000 * 7) // 8
 
-        if(squares[current_square_index].xPos >= 1500 or squares[current_square_index].xPos <= 0 or squares[current_square_index].yPos >= 1000 or squares[current_square_index].yPos <= 0):
-            squares[current_square_index].xPos = 1500 // 2
-            squares[current_square_index].yPos = (1000 * 7) // 8
+            next_state = get_state(squares, current_square_index)
+            reward = 0
+            if isCol(squares[current_square_index]):
+                reward = 1
+                running = False
 
+            remember(state, action, reward, next_state, not running)
+            state = next_state
+            total_reward += reward
 
-        next_state = get_state(squares, current_square_index)
-        reward = 0
-        if isCol(squares[current_square_index]):
-            reward = 1
-            running = False
+            replay()
 
-        remember(state, action, reward, next_state, not running)
-        state = next_state
-        total_reward += reward
+            if step % update_target_freq == 0:
+                update_target_model()
 
-        replay()
+            step += 1
 
-        if step % update_target_freq == 0:
-            update_target_model()
+        if epsilon > epsilon_min:
+            epsilon *= epsilon_decay
 
-        step += 1
-
-    if epsilon > epsilon_min:
-        epsilon *= epsilon_decay
-
-    print(f"Episode: {e}/{num_episodes}, Total Reward: {total_reward}")
+        print(f"Episode: {e}/{num_episodes}, Total Reward: {total_reward}")
