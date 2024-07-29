@@ -1,11 +1,11 @@
 import random
 from collections import deque
-from math import prod
+from pathlib import Path
 
-import numpy as np
 import torch
-from arrow import get
-from torch import nn
+import wandb
+from gymnasium.spaces.utils import flatdim
+from torch import P, nn
 
 from utils import AttrDict, get_criterion, get_optimizer
 
@@ -49,124 +49,24 @@ class CNN(nn.Module):
         return x
 
 
-class MouseEnv:
-    def __init__(self, height, width, num_destinations, env_repr="grid"):
-        self.height = height
-        self.width = width
-        self.num_destinations = num_destinations
-        self.remaining_destinations = num_destinations
-        self.env_repr = env_repr
-
-        self.direction_dict = {
-            0: torch.tensor([0, -1]),
-            1: torch.tensor([0, 1]),
-            2: torch.tensor([-1, 0]),
-            3: torch.tensor([1, 0]),
-        }
-        self.state, self.cur_pos = self.new_state()
-        if self.env_repr == "grid":
-            self.obs_shape = self.state.shape
-        elif self.env_repr == "pos":
-            self.obs_shape = prod(self.state.shape)
-        else:
-            raise ValueError(f"Invalid env_repr: {self.env_repr}")
-
-    @staticmethod
-    def idx_to_pos(idx, width):
-        return idx // width, idx % width
-
-    def observe(self):
-        return self.state
-
-    def new_state(self, height, width, num_destinations):
-        # Randomly choose one start square and num_destinations squares
-        state = torch.tensor(
-            np.random.choice(height * width, num_destinations + 1, replace=False)
-        )
-        state = torch.stack(self.idx_to_pos(state, width), dim=1)
-        cur_pos = state[0]
-
-        destinations = state[1:]
-        if self.env_repr == "grid":
-            state = torch.zeros(height, width)
-            state[cur_pos[0], cur_pos[1]] = 2
-            state[destinations[:, 0], destinations[:, 1]] = 1
-
-        self.destinations_set = set(map(tuple, destinations.tolist()))
-
-        return state, cur_pos
-
-    def reward(self, state, action):
-        next_pos = self.cur_pos + self.direction_dict[action]
-        if self.env_repr == "grid":
-            if state[next_pos[0], next_pos[1]] == 1:
-                return 1
-            else:
-                return 0
-        elif self.env_repr == "pos":
-            if (next_pos[0], next_pos[1]) in self.destinations_set:
-                return 1
-            else:
-                return 0
-
-    def step(self, action):
-        # Move the mouse to the next square
-        prev_pos = self.cur_pos
-        self.cur_pos = self.cur_pos + self.direction_dict[action]
-        done = False
-        if self.env_repr == "grid":
-            self.state[prev_pos[0], prev_pos[1]] = 0
-            if (
-                self.state[self.cur_pos[0], self.cur_pos[1]] == 1
-                and self.remaining_destinations == 1
-            ):
-                done = True
-            self.remaining_destinations -= 1
-            self.state[self.cur_pos[0], self.cur_pos[1]] = 2
-            self.state[self.cur_pos[0], self.cur_pos[1]] = 2
-        elif self.env_repr == "pos":
-            self.state[0] = self.cur_pos
-
-        return self.state, done
-
-
 class DQN:
-    def __init__(
-        self,
-        env,
-        memory_size,
-        optimizer,
-        criterion,
-        optimizer_kwargs={"lr": 0.001},
-        criterion_kwargs=None,
-        gamma=0.99,
-        epsilon=1.0,
-        epsilon_decay=0.995,
-        epsilon_min=0.1,
-        tau=0.1,
-        batch_size=32,
-    ):
-        self.criterion = criterion
-        self.gamma = gamma
-        self.epsilon = epsilon
-        self.epsilon_decay = epsilon_decay
-        self.epsilon_min = epsilon_min
-        self.tau = tau
-        self.batch_size = batch_size
+    def __init__(self, env, device="cpu", wandb_kwargs=None, config=None):
+        self.env = env
+        self.device = device
+        self.observation_space = flatdim(env.observation_space)
+        self.action_space = flatdim(env.action_space)
 
-        self.model = MLP(env.obs_shape, env.num_actions)
-        self.target_model = MLP(env.obs_shape, env.num_actions)
-        self.target_model.load_state_dict(self.model.state_dict())
-        self.target_model.eval()
+        self.model = MLP(
+            prod(env.observation_space.shape), prod(env.action_space.shape)
+        ).to(device)
+        self.target_model = MLP(
+            prod(env.observation_space.shape), prod(env.action_space.shape)
+        ).to(device)
 
-        if optimizer_kwargs is None:
-            optimizer_kwargs = {}
-        if criterion_kwargs is None:
-            criterion_kwargs = {}
-        self.optimizer = get_optimizer(optimizer, self.model, optimizer_kwargs)
-        self.criterion = get_criterion(criterion, criterion_kwargs)
+        if wandb_kwargs is not None:
+            wandb.init(wandb_kwargs[""])
 
-        self.memory = deque(maxlen=memory_size)
+        self.update_target_model()
 
     def choose_action(self, state, epsilon):
         if torch.randn() < epsilon:
@@ -174,9 +74,6 @@ class DQN:
         else:
             q_values = self.model(state)
             return torch.argmax(q_values[0], dim=1)
-
-    def sample(self, epsilon):
-        action = self.choose_action(state, epsilon)
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state.flatten(), action, reward, next_state, done))
@@ -208,3 +105,83 @@ class DQN:
 
     def update_target_model(self):
         self.target_model.load_state_dict(self.model.state_dict())
+        self.target_model.eval()
+
+    def train(
+        self,
+        num_episodes,
+        max_steps,
+        optimizer,
+        criterion,
+        optimizer_kwargs={"lr": 0.001},
+        criterion_kwargs=None,
+        render=False,
+        log_freq=None,
+        save_freq=100,
+        save_dir="models",
+        load_path=None,
+        gamma=0.99,
+        epsilon=1.0,
+        epsilon_decay=0.995,
+        epsilon_min=0.1,
+        tau=0.1,
+        batch_size=64,
+        memory_size=10000,
+    ):
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
+        self.tau = tau
+        self.batch_size = batch_size
+
+        if optimizer_kwargs is None:
+            optimizer_kwargs = {}
+        if criterion_kwargs is None:
+            criterion_kwargs = {}
+        self.optimizer = get_optimizer(optimizer, self.model, optimizer_kwargs)
+        self.criterion = get_criterion(criterion, criterion_kwargs)
+
+        self.memory = deque(maxlen=memory_size)
+
+        if save_dir is not None:
+            save_dir = Path(save_dir)
+            save_dir.mkdir(parents=True, exist_ok=True)
+
+        self.model.train()
+        for e in range(num_episodes):
+            print(f"Episode {e}/{num_episodes}")
+            state, info = self.env.reset()
+            total_reward = 0
+            running = True
+            step = 0
+            while running:
+                action = self.choose_action(state)
+                next_state, reward, terminated, truncated, info = self.env.step(action)
+                self.remember(state, action, reward, next_state, terminated)
+                self.train_step()
+                if step % self.update_target_freq == 0:
+                    self.update_target_model()
+                step += 1
+                total_reward += reward
+                state = next_state
+                if terminated or step >= max_steps:
+                    running = False
+
+            print(f"Total reward: {total_reward}")
+            if log_freq is not None and e % log_freq == 0:
+                wandb.log({"total_reward": total_reward})
+
+            if e % save_freq == 0:
+                torch.save(
+                    {
+                        "model": self.model.state_dict(),
+                        "optimizer": self.optimizer.state_dict(),
+                        "epsilon": self.epsilon,
+                        "episode": e,
+                    },
+                    save_dir / f"model_{e}.pt",
+                )
+            if self.epsilon > self.epsilon_min:
+                self.epsilon *= self.epsilon_decay
+                self.epsilon *= self.epsilon_decay
