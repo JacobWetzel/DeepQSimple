@@ -14,19 +14,23 @@ env:
 train:
   num_episodes: 1000
   max_steps: 1000
-  optimizer: adamw
-  optimizer_kwargs:
-    lr: 0.001
-    betas: [0.9, 0.999]
-  criterion: mse
-  criterion_kwargs: Null
   render: False
   log_freq: 10
   save_freq: 100
   save_dir: models
   load_model: False
   load_path: models/model.pt
-  wandb_kwargs:
+optimizer: 
+  fn: adamw
+  kwargs:
+    lr: 0.001
+    momentum: 0.9
+    beta1: 0.9
+    beta2: 0.999
+criterion: mse
+wandb:
+  kwargs:
     mode: disabled
     project: dqn
     entity: null
+    group: null

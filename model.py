@@ -1,13 +1,13 @@
 import random
 from collections import deque
+from math import prod
 from pathlib import Path
+from typing import Optional
 
 import torch
 import wandb
 from gymnasium.spaces.utils import flatdim
-from torch import P, nn
-
-from utils import AttrDict, get_criterion, get_optimizer
+from torch import nn
 
 
 class MLP(nn.Module):
@@ -49,8 +49,12 @@ class CNN(nn.Module):
         return x
 
 
-class DQN:
-    def __init__(self, env, device="cpu", wandb_kwargs=None, config=None):
+class DQNAgent:
+    def __init__(
+        self,
+        env,
+        device: str = "cpu",
+    ):
         self.env = env
         self.device = device
         self.observation_space = flatdim(env.observation_space)
@@ -62,9 +66,6 @@ class DQN:
         self.target_model = MLP(
             prod(env.observation_space.shape), prod(env.action_space.shape)
         ).to(device)
-
-        if wandb_kwargs is not None:
-            wandb.init(wandb_kwargs[""])
 
         self.update_target_model()
 
@@ -107,40 +108,43 @@ class DQN:
         self.target_model.load_state_dict(self.model.state_dict())
         self.target_model.eval()
 
-    def train(
+    def configure_logger(self, **kwargs):
+        wandb.Settings
+        wandb.init(**kwargs)
+
+    def configure_optimizer(self, fn, **kwargs):
+        if fn == "adam":
+            self.optimizer = torch.optim.Adam(self.model.parameters(), **kwargs)
+        elif fn == "adamw":
+            self.optimizer = torch.optim.AdamW(self.model.parameters(), **kwargs)
+        elif fn == "sgd":
+            self.optimizer = torch.optim.SGD(self.model.parameters(), **kwargs)
+        else:
+            raise ValueError(f"Optimizer {fn} not supported")
+
+    def learn(
         self,
-        num_episodes,
-        max_steps,
-        optimizer,
-        criterion,
-        optimizer_kwargs={"lr": 0.001},
-        criterion_kwargs=None,
-        render=False,
-        log_freq=None,
-        save_freq=100,
-        save_dir="models",
-        load_path=None,
-        gamma=0.99,
-        epsilon=1.0,
-        epsilon_decay=0.995,
-        epsilon_min=0.1,
-        tau=0.1,
-        batch_size=64,
-        memory_size=10000,
-    ):
+        num_episodes: int,
+        max_steps: int,
+        render: bool = False,
+        log_freq: Optional[int] = None,
+        save_freq: int = 100,
+        save_dir: str = "models",
+        load_path: Optional[str] = None,
+        gamma: float = 0.99,
+        epsilon: float = 1.0,
+        epsilon_decay: float = 0.995,
+        epsilon_min: float = 0.1,
+        tau: float = 0.1,
+        batch_size: int = 64,
+        memory_size: int = 10000,
+    ) -> None:
         self.gamma = gamma
-        self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
         self.tau = tau
         self.batch_size = batch_size
-
-        if optimizer_kwargs is None:
-            optimizer_kwargs = {}
-        if criterion_kwargs is None:
-            criterion_kwargs = {}
-        self.optimizer = get_optimizer(optimizer, self.model, optimizer_kwargs)
-        self.criterion = get_criterion(criterion, criterion_kwargs)
+        self.optimizer
 
         self.memory = deque(maxlen=memory_size)
 
@@ -148,15 +152,25 @@ class DQN:
             save_dir = Path(save_dir)
             save_dir.mkdir(parents=True, exist_ok=True)
 
+        if load_path is not None:
+            checkpoint = torch.load(load_path)
+            self.model.load_state_dict(checkpoint["model"])
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+            self.epsilon = checkpoint["epsilon"]
+            start_episode = checkpoint["episode"]
+        else:
+            self.epsilon = epsilon
+            start_episode = 0
+
         self.model.train()
-        for e in range(num_episodes):
+        for e in range(start_episode, num_episodes):
             print(f"Episode {e}/{num_episodes}")
-            state, info = self.env.reset()
+            state, _ = self.env.reset()
             total_reward = 0
             running = True
             step = 0
             while running:
-                action = self.choose_action(state)
+                action = self.choose_action(state, epsilon)
                 next_state, reward, terminated, truncated, info = self.env.step(action)
                 self.remember(state, action, reward, next_state, terminated)
                 self.train_step()

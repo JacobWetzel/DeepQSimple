@@ -10,13 +10,13 @@ class AttrDict(dict):
                 self[k] = AttrDict(v)
 
 
-def get_optimizer(optimizer, model, kwargs):
+def get_optimizer(optimizer, parameters, kwargs):
     if optimizer == "adam":
-        return torch.optim.Adam(model.parameters(), **kwargs)
+        return torch.optim.Adam(parameters, **kwargs)
     elif optimizer == "adamw":
-        return torch.optim.AdamW(model.parameters(), **kwargs)
+        return torch.optim.AdamW(parameters, **kwargs)
     elif optimizer == "sgd":
-        return torch.optim.SGD(model.parameters(), **kwargs)
+        return torch.optim.SGD(parameters, **kwargs)
     else:
         raise ValueError(f"Optimizer {optimizer} not supported")
 

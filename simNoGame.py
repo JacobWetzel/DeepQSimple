@@ -1,17 +1,8 @@
-import random
-import re
-from collections import deque
-from hmac import new
-from types import new_class
-
 import hydra
-import numpy as np
-import torch
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from env import MouseEnv
 from model import DQN
-from utils import AttrDict
 
 
 # Initialize squares
@@ -25,3 +16,4 @@ def train(config: DictConfig):
     # config = AttrDict(config)
     env = MouseEnv(**config.env)
     model = DQN(env=env, **config.model)
+    model.train()
