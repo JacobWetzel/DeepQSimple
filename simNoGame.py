@@ -1,57 +1,75 @@
-import random
-import numpy as np
 import tensorflow as tf
+import numpy as np
 from collections import deque
+import random
+
+# Check TensorFlow version and GPU availability
+print("TensorFlow version:", tf.__version__)
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
+# Example data (replace with your own data)
+features = np.random.rand(10000, 10)
+labels = np.random.randint(2, size=(10000, 1))
 
 # Hyperparameters
+batch_size = 20480  # Increase batch size to improve GPU utilization
+memory_size = 10000
+num_episodes = 1000
 alpha = 0.001  # Learning rate
 gamma = 0.99  # Discount factor
 epsilon = 1.0  # Exploration rate
 epsilon_min = 0.1
 epsilon_decay = 0.995
-batch_size = 64
-memory_size = 10000
-num_episodes = 1000
 update_target_freq = 10  # Frequency to update the target network
 
-# Environment parameters
-width, height = 1500, 1000
-numSquares = 10
-destination_pos = (1500 // 6, 100)
+# Data pipeline
+dataset = tf.data.Dataset.from_tensor_slices((features, labels))
+dataset = dataset.shuffle(buffer_size=1024).batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
 # Define the neural network
-model = tf.keras.models.Sequential([
-    tf.keras.layers.Input(shape=(3,)),
+model = tf.keras.Sequential([
+    tf.keras.layers.Input(shape=(10,)),
     tf.keras.layers.Dense(24, activation='relu'),
     tf.keras.layers.Dense(24, activation='relu'),
-    tf.keras.layers.Dense(5, activation='linear')  # 5 actions
+    tf.keras.layers.Dense(1, activation='sigmoid')  # For binary classification
 ])
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=alpha), loss='mse')
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=alpha), loss='binary_crossentropy', metrics=['accuracy'])
 
-# Target network
+# Train the model on the dataset
+model.fit(dataset, epochs=10)
+
+# Initialize the target network
 target_model = tf.keras.models.clone_model(model)
 target_model.set_weights(model.get_weights())
 
-# Experience replay memory
-memory = deque(maxlen=memory_size)
-
+# Define your environment class
 class MySquare:
     def __init__(self, seed):
-        self.xPos = width // 2
-        self.yPos = (height * 7) // 8
+        self.xPos = 750
+        self.yPos = 875
         self.width = 10
         self.height = 10
         self.active = False  # Initially, no square is active
         self.rng = random.Random(seed)
+        self.color = (50, 200, 200)
 
     def moveInDir(self, direction):
         if self.active:
             self.xPos += direction[0] * 10
             self.yPos += direction[1] * 10
 
+    def setRColor(self, colors):
+        self.color = colors
+
+    def getRColor(self):
+        return self.color
+
     def setPos(self, x, y):
         self.xPos = x
         self.yPos = y
+
+    def getRect(self):
+        return (self.xPos, self.yPos, self.width, self.height)
 
     def activate(self):
         self.active = True
@@ -60,7 +78,8 @@ class MySquare:
         self.active = False
 
 def isCol(sq):
-    if(((sq.xPos >= destination_pos[0] and sq.xPos <= destination_pos[0] + 10) or (sq.xPos + 10 >= destination_pos[0] and sq.xPos + 10 <= destination_pos[0] + 10)) and ((sq.yPos >= destination_pos[1] and sq.yPos <= destination_pos[1] + 10) or (sq.yPos + 10 >= destination_pos[1] and sq.yPos + 10 <= destination_pos[1] + 10))):
+    if (((sq.xPos >= 1500 / 6 and sq.xPos <= 1510 / 6) or (sq.xPos + 10 >= 1500 / 6 and sq.xPos + 10 <= 1510 / 6)) and
+            ((sq.yPos >= 100 and sq.yPos <= 110) or (sq.yPos + 10 >= 100 and sq.yPos + 10 <= 110))):
         return True
     return False
 
@@ -95,11 +114,19 @@ def update_target_model():
     target_model.set_weights(model.get_weights())
 
 # Initialize squares
+numSquares = 10
 squares = [MySquare(i + 1) for i in range(numSquares)]
 squares[0].activate()
 
 current_square_index = 0
+destination = MySquare(100)
+destination.setRColor((200, 100, 100))
+destination.setPos(1500 / 6, 100)
 
+# Initialize experience replay memory
+memory = deque(maxlen=memory_size)
+
+# Reinforcement learning training loop
 for e in range(num_episodes):
     state = get_state(squares, current_square_index)
     total_reward = 0
@@ -123,12 +150,6 @@ for e in range(num_episodes):
 
         if squares[current_square_index].active:
             squares[current_square_index].moveInDir(direction)
-
-
-        if(squares[current_square_index].xPos >= 1500 or squares[current_square_index].xPos <= 0 or squares[current_square_index].yPos >= 1000 or squares[current_square_index].yPos <= 0):
-            squares[current_square_index].xPos = 1500 // 2
-            squares[current_square_index].yPos = (1000 * 7) // 8
-
 
         next_state = get_state(squares, current_square_index)
         reward = 0
