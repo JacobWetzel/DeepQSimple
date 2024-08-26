@@ -28,5 +28,4 @@ def press_l():
 
 
 if __name__ == "__main__":
-    #move_mouse()
-    press_l()
+    move_mouse()
