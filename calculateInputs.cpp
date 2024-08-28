@@ -4,8 +4,14 @@ using namespace std;
 
 CalculateInputs::CalculateInputs(){
     //x is from start looking to end, y is left right, z is up down (as defined by the map, x y z arbitrary)
-    blocksOriginAndDimensions = {{{-320, 160, 32}, {1024, 1088, 64}},{{},{}}, {{},{}}, {{},{}}, {{},{}}, {{},{}}, };
+    bd = {{{-320, 160, 32}, {1024, 1088, 64}},{{},{}}, {{},{}}, {{},{}}, {{},{}}, {{},{}}, };
     prevYPos = prevXPos = prevZPos = prevXSpeed = prevYSpeed = prevZSpeed = prevAng = 0;
+    allBlocks = calculateBlockPositions(bd, 1);
+    blockFaces0 = calculateBlockPositions(bd, 0);
+    blockFaces2 = calculateBlockPositions(bd, 2);
+    blockFaces3 = calculateBlockPositions(bd, 3);
+    blockFaces4 = calculateBlockPositions(bd, 4);
+    fourRadFaces = {blockFaces0, blockFaces2, blockFaces3, blockFaces4};
 }
 
 /*
@@ -15,14 +21,81 @@ CalculateInputs::CalculateInputs(){
 *
 */
 
-vector<vector<vector<double>>> CalculateInputs::calculateBlockkPositions(vector<double> blocks){
+
+
+
+/*  6 faces to calculate positions for:
+*   face 0 -> face facing player when spawned
+*   face 1 -> face facing upward
+*   face 2 -> face facing player when player turns right
+*   face 3 -> face facing players when player turns left
+*   face 4 -> face facing player when turning 180 degrees
+*   face 5 -> face facing player when player looks up (unused in this case)
+*/
+vector<vector<vector<double>>> CalculateInputs::calculateBlockPositions(vector<vector<vector<double>>> blocks, int face){
+//  assumes positive x is vector from start to end
+//  assumes positive z is vector from player to sky
+//  assumes positive y is vector from player left to player right (mult by -1 if not the case)
+    vector<vector<vector<double>>> retval;
+    if(face == 0){
+        for(int i = 0; i < bd.size(); i++){
+            vector<double> vertex1, vertex2, vertex3, vertex4;
+            vertex1 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][0][1] / 2), bd[i][0][2] - (bd[i][1][2] / 2)};
+            vertex2 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][0][1] / 2), bd[i][0][2] - (bd[i][1][2] / 2)};
+            vertex3 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            vertex4 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            retval.push_back({vertex1, vertex2, vertex3, vertex4});
+        }
+    }else if(face == 1){
+
+        for(int i = 0; i < bd.size(); i++){
+            vector<double> vertex1, vertex2, vertex3, vertex4;
+            vertex1 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            vertex2 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            vertex3 = {bd[i][0][0] + (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            vertex4 = {bd[i][0][0] + (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            retval.push_back({vertex1, vertex2, vertex3, vertex4});
+        }
+
+        
+    }else if(face == 2){
+        for(int i = 0; i < bd.size(); i++){
+            vector<double> vertex1, vertex2, vertex3, vertex4;
+            vertex1 = {bd[i][0][0] + (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][0][1] / 2), bd[i][0][2] - (bd[i][1][2] / 2)};
+            vertex2 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][0][1] / 2), bd[i][0][2] - (bd[i][1][2] / 2)};
+            vertex3 = {bd[i][0][0] + (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            vertex4 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            retval.push_back({vertex1, vertex2, vertex3, vertex4});
+        }
+    }else if(face == 3){
+        for(int i = 0; i < bd.size(); i++){
+            vector<double> vertex1, vertex2, vertex3, vertex4;
+            vertex1 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][0][1] / 2), bd[i][0][2] - (bd[i][1][2] / 2)};
+            vertex2 = {bd[i][0][0] + (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][0][1] / 2), bd[i][0][2] - (bd[i][1][2] / 2)};
+            vertex3 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            vertex4 = {bd[i][0][0] + (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            retval.push_back({vertex1, vertex2, vertex3, vertex4});
+        }
+    }else if(face ==4 ){
+        for(int i = 0; i < bd.size(); i++){
+            vector<double> vertex1, vertex2, vertex3, vertex4;
+            vertex1 = {bd[i][0][0] + (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][0][1] / 2), bd[i][0][2] - (bd[i][1][2] / 2)};
+            vertex2 = {bd[i][0][0] + (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][0][1] / 2), bd[i][0][2] - (bd[i][1][2] / 2)};
+            vertex3 = {bd[i][0][0] + (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            vertex4 = {bd[i][0][0] + (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][0][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
+            retval.push_back({vertex1, vertex2, vertex3, vertex4});
+        }
+    }/*else if(face == 5){
+        unused for now
+    }*/
+
+    return retval;
 
 }
 
 
 vector<double> CalculateInputs::GetNNInputs(vector<double> playerPos, double dt){
     int numBlocksToFind = 2;
-    //vector<vector<vector<double>>> distances(numBlocksToFind, vector<vector<double>>(4, vector<double>(3)));
     vector<int> dists(numBlocksToFind);
     vector<double> retval(numBlocksToFind * 3);
     priority_queue<pair<double, int>> closest;
@@ -30,7 +103,6 @@ vector<double> CalculateInputs::GetNNInputs(vector<double> playerPos, double dt)
 
 
     //calculate the numbBlocksToFind closest blocks, store their x, y, z in double vector of doubles
-
     for(int i = 0; i < allBlocks.size(); i++){
 
         double smallestDist = 1000000000.0;
@@ -89,7 +161,37 @@ vector<double> CalculateInputs::GetNNInputs(vector<double> playerPos, double dt)
         }
     }
 
+    vector<double> distFromFaces;
+    
+
     return retval;
 
 
 }
+
+vector<vector<vector<double>>> CalculateInputs::pruneFacesByZValue(double zVal){
+    vector<vector<vector<double>>> retval; //valid faces
+    
+    for(int i = 0; i < this->fourRadFaces.size(); i++){
+        for(int j = 0; j < fourRadFaces[i].size(); j++){
+            if(zVal > fourRadFaces[i][j][0][2] && zVal < fourRadFaces[i][j][2][2]){
+                retval.push_back(fourRadFaces[i][j]);
+            }
+        }
+    }
+    return retval;
+
+}
+
+
+vector<double> CalculateInputs::calculateRadialDistances(vector<double>& playerPos, vector<double>& distFromFaces){
+    
+    vector<vector<vector<double>>> validFaces = pruneFacesByZValue(playerPos[2]);
+    
+    for(int i = 0; i < 10; i++){
+        
+    }
+
+}
+
+
