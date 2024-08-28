@@ -3,7 +3,8 @@
 using namespace std;
 
 CalculateInputs::CalculateInputs(){
-    allBlocks = {{{1, 2, 3}, {2, 3, 4}, {3, 4, 5}, {4, 5, 6}}, {{5, 6, 7}, {6, 7, 8}, {7, 8, 9}, {8, 9, 0}}, {{9, 0, 1}, {0, 1, 2}, {2, 6, 2}, {7, 2, 0}}};
+    //x is from start looking to end, y is left right, z is up down (as defined by the map, x y z arbitrary)
+    blocksOriginAndDimensions = {{{-320, 160, 32}, {1024, 1088, 64}},{{},{}}, {{},{}}, {{},{}}, {{},{}}, {{},{}}, };
     prevYPos = prevXPos = prevZPos = prevXSpeed = prevYSpeed = prevZSpeed = prevAng = 0;
 }
 
@@ -13,6 +14,11 @@ CalculateInputs::CalculateInputs(){
 *   <player ang change>, <player x accel>, <player y accel>, <player z accel>, <10 closest blocks>
 *
 */
+
+vector<vector<vector<double>>> CalculateInputs::calculateBlockkPositions(vector<double> blocks){
+
+}
+
 
 vector<double> CalculateInputs::GetNNInputs(vector<double> playerPos, double dt){
     int numBlocksToFind = 2;
