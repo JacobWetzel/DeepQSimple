@@ -161,8 +161,9 @@ vector<double> CalculateInputs::GetNNInputs(vector<double> playerPos, double dt)
         }
     }
 
-    vector<double> distFromFaces;
+    vector<double> distFromFaces(10);
     
+    calculateRadialDistances(playerPos, distFromFaces);
 
     return retval;
 
@@ -184,12 +185,49 @@ vector<vector<vector<double>>> CalculateInputs::pruneFacesByZValue(double zVal){
 }
 
 
-vector<double> CalculateInputs::calculateRadialDistances(vector<double>& playerPos, vector<double>& distFromFaces){
+pair<double, double> CalculateInputs::calculateMB(vector<vector<double>> face){
+    double m;
+    double b;
+    m = (face[0][0] - face[1][0]) / (face[0][1] - face[1][1]);
+    b = face[0][1] - (face[0][0] * m);
+    return {m, b};
+}
+
+
+double CalculateInputs::findDist(vector<vector<double>> face, vector<double>& playerPos, double ang){
+    pair<double, double> mb = calculateMB(face);
+
+    double angSlope = tan(ang - playerPos[3]);
+    if(ang == mb.first){return 1000000000.0;}
+
+    double xIntersect = mb.second / ((mb.first) - angSlope);
+    double yIntersect = angSlope * xIntersect;
+
+    double distance = sqrt(pow(yIntersect, 2) + pow(xIntersect, 2));
+
+    double xLarge = max(face[0][1], face[1][1]);
+    double yLarge = max(face[0][0], face[1][0]);
+    double xMin = min(face[0][1], face[1][1]);
+    double yMin = min(face[0][0], face[1][0]);
+
+    if(xIntersect <= xLarge && xIntersect >= xMin && yIntersect <= yLarge && yIntersect >= yMin){
+        return distance;
+    }
+    return 1000000000.0;
+}
+
+void CalculateInputs::calculateRadialDistances(vector<double>& playerPos, vector<double>& distFromFaces){
     
     vector<vector<vector<double>>> validFaces = pruneFacesByZValue(playerPos[2]);
-    
+    double curAng = playerPos[3];
     for(int i = 0; i < 10; i++){
-        
+        double curDist = 1000000000.0;
+        for(int j = 0 ; j < validFaces.size(); j++){
+            double testDist = findDist(validFaces[j], playerPos, curAng);
+            curDist = testDist < curDist ? testDist : curDist;
+        }
+        distFromFaces[i] = curDist;
+        curAng += 36;
     }
 
 }

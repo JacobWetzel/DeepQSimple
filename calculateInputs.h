@@ -19,8 +19,12 @@ public:
 
     vector<double>  GetNNInputs(vector<double> playerPos, double dt);
     vector<vector<vector<double>>> calculateBlockPositions(vector<vector<vector<double>>> blocks, int face);
-    vector<double> calculateRadialDistances(vector<double>& playerPos, vector<double>& distFromFaces);
+    void calculateRadialDistances(vector<double>& playerPos, vector<double>& distFromFaces);
     vector<vector<vector<double>>> pruneFacesByZValue(double zVal);
+    pair<double, double> calculateMB(vector<vector<double>> face);
+    double findDist(vector<vector<double>> face, vector<double>& playerPos, double ang);
+
+    
     double prevXPos;
     double prevYPos;
     double prevZPos;
