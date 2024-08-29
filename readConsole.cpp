@@ -112,7 +112,7 @@ int main() {
             }
             file.close();*/
             lastLine = "08/24 20:34:18 setpos -63.172424 50.632206 127.871246;setang 0.790020 -0.501600 0.000000";
-
+            //cout << "here\n";
             if(updateValues(lastLine, interval, posAng)){interval = 0;
                 //std::cout << std::fixed << std::setprecision(6) << posAng[0] << " " << posAng[1] << " " << posAng[2] << " " << posAng[3] << std::endl;
                 auto start = chrono::high_resolution_clock::now();

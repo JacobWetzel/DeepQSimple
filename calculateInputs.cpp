@@ -4,7 +4,7 @@ using namespace std;
 
 CalculateInputs::CalculateInputs(){
     //x is from start looking to end, y is left right, z is up down (as defined by the map, x y z arbitrary)
-    bd = {{{-320, 160, 32}, {1024, 1088, 64}},{{},{}}, {{},{}}, {{},{}}, {{},{}}, {{},{}}, };
+    bd = {{{-320, 160, 32}, {1024, 1088, 64}}, {{5000, 160, 32}, {1024, 5000, 200}}}; //, {{2500, 500, 32}, {5000, 100, 200}}};
     prevYPos = prevXPos = prevZPos = prevXSpeed = prevYSpeed = prevZSpeed = prevAng = 0;
     allBlocks = calculateBlockPositions(bd, 1);
     blockFaces0 = calculateBlockPositions(bd, 0);
@@ -165,6 +165,10 @@ vector<double> CalculateInputs::GetNNInputs(vector<double> playerPos, double dt)
     
     calculateRadialDistances(playerPos, distFromFaces);
 
+    for(int i = 0; i < distFromFaces.size(); i++){
+        retval.push_back(distFromFaces[i]);
+    }
+
     return retval;
 
 
@@ -210,6 +214,8 @@ double CalculateInputs::findDist(vector<vector<double>> face, vector<double>& pl
     double xMin = min(face[0][1], face[1][1]);
     double yMin = min(face[0][0], face[1][0]);
 
+    cout << "xint, yint, xlarge, xmin, ylarge, ymin " << xIntersect << " " << yIntersect << " " << xLarge << " " << xMin << " " << yLarge << " " << yMin << endl;
+    cout << "m tan(phi) " << mb.first << " " << angSlope << endl;
     if(xIntersect <= xLarge && xIntersect >= xMin && yIntersect <= yLarge && yIntersect >= yMin){
         return distance;
     }
@@ -219,8 +225,18 @@ double CalculateInputs::findDist(vector<vector<double>> face, vector<double>& pl
 void CalculateInputs::calculateRadialDistances(vector<double>& playerPos, vector<double>& distFromFaces){
     
     vector<vector<vector<double>>> validFaces = pruneFacesByZValue(playerPos[2]);
+    cout << "size of valid faces " << validFaces.size() << endl;
+
+    for(int i = 0; i < validFaces.size(); i++){
+        for(int j = 0; j < validFaces[i].size(); j++){
+            cout << validFaces[i][j][0] << " " << validFaces[i][j][1]  << " " << validFaces[i][j][2]  << endl;
+        }
+        cout << endl << endl;
+    }
+
+
     double curAng = playerPos[3];
-    for(int i = 0; i < 10; i++){
+    for(int i = 0; i < 1; i++){
         double curDist = 1000000000.0;
         for(int j = 0 ; j < validFaces.size(); j++){
             double testDist = findDist(validFaces[j], playerPos, curAng);
