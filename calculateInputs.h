@@ -18,12 +18,12 @@ public:
     vector<vector<vector<double>>> blockFaces4;
     vector<vector<vector<vector<double>>>> fourRadFaces;
 
-    vector<double>  GetNNInputs(vector<double> playerPos, double dt);
-    vector<vector<vector<double>>> calculateBlockPositions(vector<vector<vector<double>>> blocks, int face);
+    vector<double>  GetNNInputs(vector<double>& playerPos, double dt);
+    vector<vector<vector<double>>> calculateBlockPositions(int face);
     void calculateRadialDistances(vector<double>& playerPos, vector<double>& distFromFaces);
     vector<vector<vector<double>>> pruneFacesByZValue(double zVal);
-    pair<double, double> calculateMB(vector<vector<double>> face, vector<double>& playerPos);
-    double findDist(vector<vector<double>> face, vector<double>& playerPos, double ang);
+    pair<double, double> calculateMB(vector<vector<double>>& face, vector<double>& playerPos);
+    double findDist(vector<vector<double>>& face, vector<double>& playerPos, double ang);
 
     
     double prevXPos;

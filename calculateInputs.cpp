@@ -6,15 +6,25 @@ CalculateInputs::CalculateInputs(){
     //x is from start looking to end, y is left right, z is up down (as defined by the map, x y z arbitrary)
 
     //INVERTED THE Y VALUES ON ONLY THE 4 WALLS
-    bd = {{{-320, 160, 32}, {1024, 1088, 64}}, {{-1184, -128, 64}, {64, 1792, 640}}, {{2144, -1024, 64}, {6720, 128, 640}}, {{2112, 736, 64}, {6528, 64, 640}}, {{5344, -96, 0}, {64, 1856, 768}}}; //, {{2500, 500, 32}, {5000, 100, 200}}};
+    bd = {{{-320, 160, 32}, {1024, 1088, 64}}, {{-1184, -128, 64}, {64, 1792, 640}}, {{2144, -1024, 64}, {6720, 128, 640}},
+    {{2112, 736, 64}, {6528, 64, 640}}, 
+    {{5344, -96, 0}, {64, 1856, 768}},
+    {{2368, -512, 128}, {64, 384, 576}},
+    {{3180, -151.962, 80}, {64, 384, 608}}
+
+    
+    };
+    
+    
+     //, {{2500, 500, 32}, {5000, 100, 200}}};
     //bd = {{{-320, 160, 32}, {1024, 1088, 64}}, {{352, -92, 32},{192, 192, 64}}, {{512, 160, 32},{128, 192, 64}}, {{704, 128, 32},{128, 128, 64}}, {{864, -128, 32},{}}, {{},{}}, };
 
     prevYPos = prevXPos = prevZPos = prevXSpeed = prevYSpeed = prevZSpeed = prevAng = 0;
-    allBlocks = calculateBlockPositions(bd, 1);
-    blockFaces0 = calculateBlockPositions(bd, 0);
-    blockFaces2 = calculateBlockPositions(bd, 2);
-    blockFaces3 = calculateBlockPositions(bd, 3);
-    blockFaces4 = calculateBlockPositions(bd, 4);
+    allBlocks = calculateBlockPositions(1);
+    blockFaces0 = calculateBlockPositions(0);
+    blockFaces2 = calculateBlockPositions(2);
+    blockFaces3 = calculateBlockPositions(3);
+    blockFaces4 = calculateBlockPositions(4);
     fourRadFaces = {blockFaces0, blockFaces2, blockFaces3, blockFaces4};
 }
 
@@ -36,7 +46,7 @@ CalculateInputs::CalculateInputs(){
 *   face 4 -> face facing player when turning 180 degrees
 *   face 5 -> face facing player when player looks up (unused in this case)
 */
-vector<vector<vector<double>>> CalculateInputs::calculateBlockPositions(vector<vector<vector<double>>> blocks, int face){
+vector<vector<vector<double>>> CalculateInputs::calculateBlockPositions(int face){
 //  assumes positive x is vector from start to end
 //  assumes positive z is vector from player to sky
 //  assumes positive y is vector from player left to player right (mult by -1 if not the case)
@@ -44,12 +54,10 @@ vector<vector<vector<double>>> CalculateInputs::calculateBlockPositions(vector<v
     if(face == 0){
         for(int i = 0; i < bd.size(); i++){
             vector<double> vertex1, vertex2, vertex3, vertex4;
-            //[cout << bd[i][1][1] << endl;
             vertex1 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][1][1] / 2), bd[i][0][2] - (bd[i][1][2] / 2)};
             vertex2 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][1][1] / 2), bd[i][0][2] - (bd[i][1][2] / 2)};
             vertex3 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] - (bd[i][1][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
             vertex4 = {bd[i][0][0] - (bd[i][1][0] / 2), bd[i][0][1] + (bd[i][1][1] / 2), bd[i][0][2] + (bd[i][1][2] / 2)};
-            //cout << vertex1[1] << " " << vertex2[1] << " " << vertex3[1] << " " << vertex4[1] << endl;
             retval.push_back({vertex1, vertex2, vertex3, vertex4});
         }
     }else if(face == 1){
@@ -100,18 +108,18 @@ vector<vector<vector<double>>> CalculateInputs::calculateBlockPositions(vector<v
 }
 
 
-vector<double> CalculateInputs::GetNNInputs(vector<double> playerPos, double dt){
+vector<double> CalculateInputs::GetNNInputs(vector<double>& playerPos, double dt){
     int numBlocksToFind = 2;
     vector<int> dists(numBlocksToFind);
     vector<double> retval(numBlocksToFind * 3);
     priority_queue<pair<double, int>> closest;
-    double xSpeed, ySpeed, zSpeed, xAccel, yAccel, zAccel, angChange;
+    double xSpeed, ySpeed, zSpeed, xAccel, yAccel, zAccel, angChange, smallestDist;
 
 
     //calculate the numbBlocksToFind closest blocks, store their x, y, z in double vector of doubles
     for(int i = 0; i < allBlocks.size(); i++){
 
-        double smallestDist = 1000000000.0;
+        smallestDist = 1000000000.0;
         for(int j = 0; j < allBlocks[i].size(); j++){  
             smallestDist = min(smallestDist, abs(playerPos[0] - allBlocks[i][j][0]) + abs(playerPos[1] - allBlocks[i][j][1]) + abs(playerPos[2] - allBlocks[i][j][2]));
         }
@@ -128,7 +136,6 @@ vector<double> CalculateInputs::GetNNInputs(vector<double> playerPos, double dt)
     int itr = numBlocksToFind - 1;
     while(closest.size() > 0){
         dists[itr] = closest.top().second;
-        //distances[itr] = allBlocks[closest.top().second];
         closest.pop();
         itr--;
     }
@@ -195,7 +202,7 @@ vector<vector<vector<double>>> CalculateInputs::pruneFacesByZValue(double zVal){
 }
 
 //y in line formula is x recieved value
-pair<double, double> CalculateInputs::calculateMB(vector<vector<double>> face, vector<double>& playerPos){
+pair<double, double> CalculateInputs::calculateMB(vector<vector<double>>& face, vector<double>& playerPos){
     double m;
     double b;
     m = (face[0][0] - face[1][0]) / (face[0][1] - face[1][1]);
@@ -212,7 +219,7 @@ pair<double, double> CalculateInputs::calculateMB(vector<vector<double>> face, v
 }
 
 
-double CalculateInputs::findDist(vector<vector<double>> face, vector<double>& playerPos, double ang){
+double CalculateInputs::findDist(vector<vector<double>>& face, vector<double>& playerPos, double ang){
     pair<double, double> mb = calculateMB(face, playerPos);
     double xIntersect, yIntersect;
     double angSlope = tan((3.14159 / 180.0) * ang);
@@ -276,15 +283,12 @@ void CalculateInputs::calculateRadialDistances(vector<double>& playerPos, vector
         normPlayerAng += 90;
     }
     //need to edit how to add angle, starts from -180 -> +180 in game
+    double curDist = INFINITY;
+    double testDist;
     for(int i = 0; i < 10; i++){
-        double curDist = INFINITY;
+        curDist = INFINITY;
         for(int j = 0; j < validFaces.size(); j++){
-            //cout << "working on face w/ verteces: ";
-           //for(int k = 0; k < 4; k++){
-           // cout << "<" << validFaces[j][k][0]; cout << ", " << validFaces[j][k][1] << ", " << validFaces[j][k][2] << ">, ";
-           // }cout << endl << endl;
-            double testDist = findDist(validFaces[j], playerPos, normPlayerAng);
-            //cout << "TEST DIST: " << testDist << endl << endl;
+            testDist = findDist(validFaces[j], playerPos, normPlayerAng);
             curDist = testDist < curDist ? testDist : curDist;
         }
         distFromFaces[i] = curDist;

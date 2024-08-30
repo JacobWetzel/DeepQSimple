@@ -115,8 +115,11 @@ int main() {
     CalculateInputs ci = CalculateInputs();
     long long interval = 0;
     vector<double> posAng(4, 0.0);
+    vector<double> prevPosAng(4, 0.0);
     //setpos str starts at char 15
     while (true) {
+        auto start = chrono::high_resolution_clock::now();
+
         file.open(filename, std::ios::in);
         if (file.is_open()) {
             std::string line;
@@ -126,20 +129,25 @@ int main() {
             file.close();
             //lastLine = "08/24 20:34:18 setpos -63.172424 50.632206 127.871246;setang 0.790020 -0.501600 0.000000";
             //cout << "here\n";
-            if(updateValues(lastLine, interval, posAng)){interval = 0;
+            if(updateValues(lastLine, interval, posAng)){
+                if(posAng[0] != prevPosAng[0] || posAng[1] != prevPosAng[1] || posAng[2] != prevPosAng[2] || posAng[3] != prevPosAng[3]){
+                    vector<double> calculatedInputs = ci.GetNNInputs(posAng, interval);
+
+                    writeDoublesToFile(calculatedInputs, "nnValues.txt");
+                    interval = 0;
+                    prevPosAng = posAng;
+                }
                 //std::cout << std::fixed << std::setprecision(6) << posAng[0] << " " << posAng[1] << " " << posAng[2] << " " << posAng[3] << std::endl;
-                auto start = chrono::high_resolution_clock::now();
-                vector<double> calculatedInputs = ci.GetNNInputs(posAng, interval);
-                auto end = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-                writeDoublesToFile(calculatedInputs, "nnValues.txt");
-                //cout << duration << endl;
+                //auto start = chrono::high_resolution_clock::now();
 
                 /*for(int i = 0; i < calculatedInputs.size(); i++){
                     cout << calculatedInputs[i] << " ";
                 }cout << endl << endl;*/
             }
 
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            cout << duration << endl;
         } //else {
             //std::cerr << "Unable to open file! Error: " << strerror(errno) << std::endl;
         //}
