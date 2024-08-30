@@ -6,7 +6,7 @@ CalculateInputs::CalculateInputs(){
     //x is from start looking to end, y is left right, z is up down (as defined by the map, x y z arbitrary)
 
     //INVERTED THE Y VALUES ON ONLY THE 4 WALLS
-    bd = {{{-320, 160, 32}, {1024, 1088, 64}}, {{-1184, -128, 64}, {64, 17920, 640}}, {{2144, -1024, 64}, {67200, 128, 640}}, {{2112, 736, 64}, {65280, 64, 640}}, {{5344, -96, 0}, {64, 18560, 768}}}; //, {{2500, 500, 32}, {5000, 100, 200}}};
+    bd = {{{-320, 160, 32}, {1024, 1088, 64}}, {{-1184, -128, 64}, {64, 1792, 640}}, {{2144, -1024, 64}, {6720, 128, 640}}, {{2112, 736, 64}, {6528, 64, 640}}, {{5344, -96, 0}, {64, 1856, 768}}}; //, {{2500, 500, 32}, {5000, 100, 200}}};
     //bd = {{{-320, 160, 32}, {1024, 1088, 64}}, {{352, -92, 32},{192, 192, 64}}, {{512, 160, 32},{128, 192, 64}}, {{704, 128, 32},{128, 128, 64}}, {{864, -128, 32},{}}, {{},{}}, };
 
     prevYPos = prevXPos = prevZPos = prevXSpeed = prevYSpeed = prevZSpeed = prevAng = 0;
@@ -245,9 +245,12 @@ double CalculateInputs::findDist(vector<vector<double>> face, vector<double>& pl
     //cout << "m tan(phi) " << mb.first << " " << angSlope << endl;
     if(xIntersect <= xLarge && xIntersect >= xMin && yIntersect <= yLarge && yIntersect >= yMin){
         double tAng = ang;
+        
+       // cout << endl << endl;
         //cout << ang << endl;
+        //cout << xIntersect << " " << yIntersect << endl;
+
         if(tAng >= 0 && tAng <= 90){
-            cout << xIntersect << " " << yIntersect << endl;
             if(xIntersect < 0 || yIntersect < 0){return INFINITY;}
         }else if(tAng > 90 && tAng <= 180){
             if(xIntersect > 0 || yIntersect < 0){return INFINITY;}
@@ -275,14 +278,20 @@ void CalculateInputs::calculateRadialDistances(vector<double>& playerPos, vector
     //need to edit how to add angle, starts from -180 -> +180 in game
     for(int i = 0; i < 10; i++){
         double curDist = INFINITY;
-        for(int j = 0 ; j < validFaces.size(); j++){
+        for(int j = 0; j < validFaces.size(); j++){
+            //cout << "working on face w/ verteces: ";
+           //for(int k = 0; k < 4; k++){
+           // cout << "<" << validFaces[j][k][0]; cout << ", " << validFaces[j][k][1] << ", " << validFaces[j][k][2] << ">, ";
+           // }cout << endl << endl;
             double testDist = findDist(validFaces[j], playerPos, normPlayerAng);
+            //cout << "TEST DIST: " << testDist << endl << endl;
             curDist = testDist < curDist ? testDist : curDist;
         }
         distFromFaces[i] = curDist;
         normPlayerAng += 36;
         normPlayerAng = fmod(normPlayerAng, 360.0);
     }
+    //Sleep(1000000);
 
 }
 

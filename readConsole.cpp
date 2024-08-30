@@ -46,7 +46,20 @@ bool updateValues(string str, long long interval, vector<double>& posAng){
         posAng[vectorPos] = (val + (decVal / 1000000.0));
         vectorPos++;
         if(str[i] == ';'){
-            i+=17;
+            int b= 0;
+            while(str[i] != ' '){
+                i++;
+                if(str[i] == ' '){
+                    if(b == 0){
+                        b++;
+                        str[i] = '.';
+                        continue;
+                    }
+                    else{
+                        i++; break;
+                    }
+                }
+            }
             isNeg = false;
             double yawVal = 0.0;
             double yawDec = 0.0;
