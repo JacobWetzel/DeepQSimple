@@ -1,7 +1,7 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np 
-from gymEnv.envs.myGame import cheeseGame
+from gymEnv.envs.csGameData import csGame
 
 
 
@@ -10,7 +10,7 @@ class Cheese2d(gym.Env):
     metadata = {"redner_modes": None}
 
     def __init__(self):
-        self.game = cheeseGame()
+        self.game = csGame()
         self.action_space = spaces.Discrete(4)
         self.observation_space = spaces.Box(np.array([-20.0, -20.0, 9, 9]), np.array([20.0, 20.0, 11, 11]), (4,), np.float32)
 
