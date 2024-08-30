@@ -21,7 +21,7 @@ def move_mouse():
         
         # Pause for a bit before the next iteration
         time.sleep(0.5)
-
+       
 def press_l():
     time.sleep(5)
     for i in range (0, 1000, 1):

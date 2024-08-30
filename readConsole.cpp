@@ -104,14 +104,14 @@ int main() {
     vector<double> posAng(4, 0.0);
     //setpos str starts at char 15
     while (true) {
-        /*file.open(filename, std::ios::in);
+        file.open(filename, std::ios::in);
         if (file.is_open()) {
             std::string line;
             while (std::getline(file, line)) {
                 lastLine = line;
             }
-            file.close();*/
-            lastLine = "08/24 20:34:18 setpos -63.172424 50.632206 127.871246;setang 0.790020 -0.501600 0.000000";
+            file.close();
+            //lastLine = "08/24 20:34:18 setpos -63.172424 50.632206 127.871246;setang 0.790020 -0.501600 0.000000";
             //cout << "here\n";
             if(updateValues(lastLine, interval, posAng)){interval = 0;
                 //std::cout << std::fixed << std::setprecision(6) << posAng[0] << " " << posAng[1] << " " << posAng[2] << " " << posAng[3] << std::endl;
@@ -120,14 +120,14 @@ int main() {
                 auto end = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
                 writeDoublesToFile(calculatedInputs, "nnValues.txt");
-                cout << duration << endl;
+                //cout << duration << endl;
 
                 /*for(int i = 0; i < calculatedInputs.size(); i++){
                     cout << calculatedInputs[i] << " ";
                 }cout << endl << endl;*/
             }
 
-        //} //else {
+        } //else {
             //std::cerr << "Unable to open file! Error: " << strerror(errno) << std::endl;
         //}
 
