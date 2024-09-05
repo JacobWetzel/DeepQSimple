@@ -16,7 +16,7 @@ public:
     vector<vector<vector<double>>> blockFaces2;
     vector<vector<vector<double>>> blockFaces3;
     vector<vector<vector<double>>> blockFaces4;
-    vector<vector<vector<vector<double>>>> fourRadFaces;
+    vector<vector<vector<double>>> fourRadFaces;
 
     vector<double>  GetNNInputs(vector<double>& playerPos, double dt);
     vector<vector<vector<double>>> calculateBlockPositions(int face);

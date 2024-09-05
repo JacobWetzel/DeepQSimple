@@ -14,7 +14,8 @@ class CSEnv(gym.Env):
 
     def __init__(self):
         self.keyboard = Controller()
-
+        self.keyboard.press('i')
+        self.keyboard.release('i')
         self.game = csGame()
         self.action_space = spaces.Discrete(4)
         self.observation_space = spaces.Box(np.array([-10000.0, -10000.0, -10000.0, -10000.0,-10000.0, -10000.0, -10000.0, -10000.0,
@@ -46,7 +47,8 @@ class CSEnv(gym.Env):
          10000.0, 10000.0,10000.0, 10000.0, 10000.0, 10000.0,
          10000.0, 10000.0,10000.0, 10000.0, 10000.0, 10000.0,
          10000.0, 10000.0,10000.0, 10000.0, 10000.0, 10000.0,
-         10000.0, 10000.0, 10000.0, 10000.0, 10000.0]), (117,), np.float(32))
+         10000.0, 10000.0,10000.0, 10000.0, 10000.0, 10000.0,
+         10000.0, 10000.0, 10000.0, 10000.0, 10000.0]), (117,), np.float32)
     def reset(self, seed=None, options=None):
 
         self.keyboard.press('p')
@@ -56,8 +58,8 @@ class CSEnv(gym.Env):
         self.keyboard.press('p')
         self.keyboard.release('p')
         all_keys = [
-            'd', 'e', 'f', 'g', 'h', 'i', 'o', 'p', 'w',
-            'space', 'enter', 'backspace']
+            'd', 'e', 'f', 'g', 'h', 'i', 'o', 'p', 'w']
+        self.keyboard.release(Key.space)
         for k in all_keys:
             self.keyboard.release(k)
         time.sleep(1)

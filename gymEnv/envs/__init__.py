@@ -1,2 +1,2 @@
-from gymEnv.envs.cheeseEnv import *
-from gymEnv.envs.myGame import csGame
+from gymEnv.envs.csEnv import *
+from gymEnv.envs.csGameData import csGame

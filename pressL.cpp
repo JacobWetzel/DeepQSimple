@@ -3,7 +3,11 @@
 
 int main() {
     Sleep(10000);
-    for(int i = 0; i < 200000; i++) {
+    while(true) {
+        if (GetAsyncKeyState(VK_UP) & 0x8000) {
+            //std::cout << "Up arrow key pressed!\n";
+            break;
+        }
         // Simulate pressing the 'l' key
         keybd_event('L', 0, 0, 0);
         keybd_event('L', 0, KEYEVENTF_KEYUP, 0);

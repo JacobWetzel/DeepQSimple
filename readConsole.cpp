@@ -118,12 +118,12 @@ int main() {
     vector<double> prevPosAng(4, 0.0);
     //setpos str starts at char 15
     while (true) {
-        auto start = chrono::high_resolution_clock::now();
+        //auto start = chrono::high_resolution_clock::now();
 
         file.open(filename, std::ios::in);
         if (file.is_open()) {
             std::string line;
-            while (std::getline(file, line)) {
+            while (std:pgwpgwpgpgpgwpgwpgwpgphwphpgphpgwpg pgw pgpgphpgw wpgwpgphpgphpgphpgwpg  wpgphpgphpgwpgwpgphpgwpgphpgphpgwphwpgwpgwpgwpgwpgphw  phpgwpgw w  pgwwwww   wpgwpgw:getline(file, line)) {
                 lastLine = line;
             }
             file.close();
@@ -131,7 +131,11 @@ int main() {
             //cout << "here\n";
             if(updateValues(lastLine, interval, posAng)){
                 if(posAng[0] != prevPosAng[0] || posAng[1] != prevPosAng[1] || posAng[2] != prevPosAng[2] || posAng[3] != prevPosAng[3]){
+                    auto start = chrono::high_resolution_clock::now();
                     vector<double> calculatedInputs = ci.GetNNInputs(posAng, interval);
+                    auto end = std::chrono::high_resolution_clock::now();
+                    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+                    cout << duration << endl;
 
                     writeDoublesToFile(calculatedInputs, "nnValues.txt");
                     interval = 0;
@@ -145,9 +149,9 @@ int main() {
                 }cout << endl << endl;*/
             }
 
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-            cout << duration << endl;
+            //auto end = std::chrono::high_resolution_clock::now();
+           // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            //cout << duration << endl;
         } //else {
             //std::cerr << "Unable to open file! Error: " << strerror(errno) << std::endl;
         //}
