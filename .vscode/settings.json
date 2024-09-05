@@ -59,6 +59,13 @@
         "stop_token": "cpp",
         "string": "cpp",
         "vector": "cpp",
-        "cerrno": "cpp"
+        "cerrno": "cpp",
+        "algorithm": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "queue": "cpp",
+        "random": "cpp",
+        "ranges": "cpp",
+        "span": "cpp"
     }
 }

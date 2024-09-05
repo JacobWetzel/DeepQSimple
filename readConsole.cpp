@@ -123,7 +123,7 @@ int main() {
         file.open(filename, std::ios::in);
         if (file.is_open()) {
             std::string line;
-            while (std:pgwpgwpgpgpgwpgwpgwpgphwphpgphpgwpg pgw pgpgphpgw wpgwpgphpgphpgphpgwpg  wpgphpgphpgwpgwpgphpgwpgphpgphpgwphwpgwpgwpgwpgwpgphw  phpgwpgw w  pgwwwww   wpgwpgw:getline(file, line)) {
+            while (std::getline(file, line)) {
                 lastLine = line;
             }
             file.close();
