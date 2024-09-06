@@ -10,17 +10,19 @@ class csGame():
         script_dir = os.path.dirname(__file__)
         self.file_path = os.path.join(script_dir, '..', '..', 'nnValues.txt')
         self.timeStep = 0
+        self.farthestXPos = -250
         self.prevNumbers = [None] * 118
         self.numbers = self.read_filled_data()
         self.prevNumbers = self.numbers
         self.prevAction = -1
+        
         #self.timeStep = 100
     def action(self, action):
         self.updatePlayer(action)
         return
     
 
-    def read_filled_data(self, expected_length=118):
+    def read_filled_data(self, expected_length=119):
         """
         Reads data from a file and ensures that all expected_length spots are filled.
         
@@ -38,8 +40,9 @@ class csGame():
                 numbers = [float(line.strip()) for line in lines]
 
                 numbers.append(self.timeStep)
+                numbers.append(self.farthestXPos)
                 # Check if the list has the required length
-                if (len(numbers) == expected_length and ((numbers[:-1] != self.prevNumbers[:-1]) or (time.time() - start_time > 0.1))) :
+                if (len(numbers) == expected_length and ((numbers[:-2] != self.prevNumbers[:-2]) or (time.time() - start_time > 0.1))) :
                     # If we have more than expected, just take the first expected_length values
                     return numbers
                 
@@ -51,8 +54,10 @@ class csGame():
 
 
     def evaluate(self):
-        if(self.isTermCollision()):
+        if(self.isTermCollisionA()):
             return -10000
+        if(self.isTermCollisionB()):
+            return -1000
         if(self.isCheeseCollision()):
             return 100000
         val1 = self.numbers[0] + 250
@@ -107,11 +112,14 @@ class csGame():
         
     
     #IF SENT BACK TO BEGINING
-    def isTermCollision(self):
-        if(self.numbers[2] < 123 or self.numbers[0] < -320): #REPLACE 500W ITH ACTUAL END VAL
+    def isTermCollisionA(self):
+        if(self.numbers[0] < -320): #REPLACE 500W ITH ACTUAL END VAL
             return True
         return False
-    
+    def isTermCollisionB(self):
+        if(self.numbers[2] < 123): #REPLACE 500W ITH ACTUAL END VAL
+            return True
+        return False
     #IF REACHED THE END ABOVE CERTAIN Z VALUE
     def isCheeseCollision(self):
         if(self.numbers[0] >= 3808 and self.numbers[2] > 127): #REPLACE 1000 WITH ACTUAL END VAL
