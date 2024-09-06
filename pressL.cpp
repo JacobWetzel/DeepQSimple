@@ -4,7 +4,7 @@
 int main() {
     Sleep(10000);
     while(true) {
-        if (GetAsyncKeyState(VK_UP) & 0x8000) {
+        if (GetAsyncKeyState(VK_DOWN) & 0x8000) {
             //std::cout << "Up arrow key pressed!\n";
             break;
         }
@@ -13,7 +13,7 @@ int main() {
         keybd_event('L', 0, KEYEVENTF_KEYUP, 0);
 
         // Sleep for 100ms to avoid overwhelming the system
-        Sleep(10);  // Adjust the delay if needed
+        Sleep(7);  // Adjust the delay if needed
     }
     return 0;
 }

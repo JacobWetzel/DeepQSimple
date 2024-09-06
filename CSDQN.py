@@ -24,7 +24,7 @@ if is_ipython:
 
 plt.ion()'''
 
-
+maxReward = -10000
 
 # if GPU is to be used
 device = torch.device(
@@ -57,16 +57,18 @@ class DQN(nn.Module):
 
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 1280)
-        self.layer2 = nn.Linear(1280, 1280)
-        self.layer3 = nn.Linear(1280, n_actions)
+        self.layer1 = nn.Linear(n_observations, 512)
+        self.layer2 = nn.Linear(512, 512)
+        self.layer3 = nn.Linear(512, 512)
+        self.layer4 = nn.Linear(512, n_actions)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        return self.layer3(x)
+        x = F.relu(self.layer3(x))
+        return self.layer4(x)
     
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
@@ -92,12 +94,12 @@ n_observations = len(state)
 
 #policy_net = DQN(n_observations, n_actions).to(device)
 #target_net = DQN(n_observations, n_actions).to(device)
-policy_net = torch.load('netFile')
-target_net = torch.load('netFile')
+policy_net = torch.load('nettFile')
+target_net = torch.load('nettFile')
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(5000)
+memory = ReplayMemory(2500)
 
 
 steps_done = 0
@@ -212,6 +214,7 @@ else:
 stop_loop = False
 
 def on_press(key):
+    global stop_loop
     try:
         if key == keyboard.Key.up:
             print("Up arrow key pressed! Stopping loop...")
@@ -234,9 +237,12 @@ for i_episode in range(num_episodes):
     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
     #print("State shape:", state.shape)
     ep_reward = 0
+    stp = 0
     for t in count():
+        stp += 1
         action = select_action(state)
         observation, reward, terminated, truncated, _ = env.step(action.item())
+        print(observation[0], observation[1], observation[2])
         #print("State obs shape:", observation.shape)
         ep_reward += reward
         reward = torch.tensor([reward], device=device)
@@ -248,9 +254,9 @@ for i_episode in range(num_episodes):
             next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
             #print("Obs shape:", state.shape)
 
-        # Store the transition in memory
+        # Store the transition in mempppiory
         memory.push(state, action, next_state, reward)
-
+        #print(action)
         # Move to the next state
         state = next_state
 
@@ -266,9 +272,15 @@ for i_episode in range(num_episodes):
         target_net.load_state_dict(target_net_state_dict)
 
         if done:
+            
             episode_durations.append(t + 1)
             episode_rewards.append(ep_reward)
             print(ep_reward)
+            if(ep_reward > maxReward):
+                maxReward = ep_reward
+                print("NEW MAX REWARD")
+                torch.save(target_net, 'maxNet')
+            print(stp)
             torch.save(target_net, 'nettFile')
             #plot_durations()
             break
