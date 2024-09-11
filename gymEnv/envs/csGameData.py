@@ -55,16 +55,19 @@ class csGame():
 
     def evaluate(self):
         if(self.isTermCollisionA()):
-            return -10000
+            return -100000
         if(self.isTermCollisionB()):
-            return -1000
+            return -10000
         if(self.isCheeseCollision()):
-            return 100000
-        val1 = self.numbers[0] + 250
+            return 1000000
+        val1 = self.numbers[0] - self.prevNumbers[0]
+        if(self.numbers[0] > self.farthestXPos):
+            self.farthestXPos = self.numbers[0]
+            val1 += self.numbers[3]
         #if(val1 < 0):
         #    val1 = val1 * 1.3
         val2 = 0
-        self.timeStep += 1
+        self.timeStep += 0.2
         if(self.numbers[8] > 0):
             val2 = self.numbers[8]
         return (val1) + (val2) - (self.timeStep)
@@ -91,6 +94,8 @@ class csGame():
         self.keyboard.release('g')
         self.keyboard.release('h')
         self.keyboard.release('w')
+        self.keyboard.press('p')
+        self.keyboard.release('p')
         #SELECT IN GAME MOVE
         if action == 0: #press Space
             self.keyboard.press(Key.space)

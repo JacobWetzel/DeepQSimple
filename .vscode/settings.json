@@ -66,6 +66,8 @@
         "queue": "cpp",
         "random": "cpp",
         "ranges": "cpp",
-        "span": "cpp"
+        "span": "cpp",
+        "mutex": "cpp",
+        "condition_variable": "cpp"
     }
 }

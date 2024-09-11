@@ -11,9 +11,15 @@
 #include <algorithm>
 #include <sstream>
 #include "calculateInputs.h"
-
+#include <mutex>
+#include <condition_variable>
 
 using namespace std;
+
+std::mutex mtx;
+std::condition_variable cv;
+std::string lastLine;
+bool dataReady = false;
 
 //true for successful read, false for bad read
 bool updateValues(string str, long long interval, vector<double>& posAng){
@@ -193,23 +199,60 @@ std::string read_Last_Line(std::ifstream& file) {
     return last_line;
 }
 
+void monitorFileUpdates(const std::string& filePath) {
+    std::ifstream file(filePath, std::ios::binary);
+    std::string line;
+    std::streampos lastPos = file.end;
+    file.seekg(0, std::ios::end); 
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << filePath << std::endl;
+        return;
+    }
+    int i = 0;
+    while (true) {
+        std::unique_lock<std::mutex> lk(mtx);
+        file.seekg(lastPos);
+
+        if (std::getline(file, line)) {
+            lastLine = line;
+            dataReady = true;
+            cv.notify_one();  // Notify the waiting main thread
+        } else if (file.eof()) {
+            file.clear();  // Clear EOF to allow further reading if the file is updated
+            file.seekg(lastPos);  // Stay at the last known good position
+            // Consider notifying the main thread that EOF was reached
+            // Optionally, you could also use a separate flag or condition to indicate EOF state
+        }
+
+        lastPos = file.tellg();
+        lk.unlock();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    file.close();
+}
+
+
+
 int main() {
     std::string filename = R"(C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log)";
+    std::thread fileMonitor(monitorFileUpdates, filename);  // Start the monitor in a new thread
     //std::ifstream file;
-    std::string lastLine;
     CalculateInputs ci = CalculateInputs();
     long long interval = 0;
     vector<double> posAng(4, 0.0);
     vector<double> prevPosAng(4, 0.0);
+    string ll = "";
     //setpos str starts at char 15
     //file.open(filename, std::ios::in);
-    std::ifstream file(filename, std::ios::in);
-    file.seekg(0, std::ios::end);
+    //std::ifstream file(filename, std::ios::in);
+    //file.seekg(0, std::ios::end);
     auto st = chrono::high_resolution_clock::now();
     auto endVal = chrono::high_resolution_clock::now();
+    int itr = 0;
     while (true) {
         auto start = chrono::high_resolution_clock::now();
-        if (file.is_open()) {
+        //if (file.is_open()) {
             //std::string line;
             /*while (std::getline(file, line)) {
                 lastLine = line;
@@ -224,9 +267,25 @@ int main() {
                     //std::cout << "Most recent line: " << line << std::endl;
                     lastLine = line;
             }*/
-            lastLine = read_Last_Line(file);
+            itr++;
+            if(itr == 10000){
+                cout << "here2\n";
+                itr = 0;
+            }
+            
+            std::unique_lock<std::mutex> lk(mtx);
+            cv.wait(lk, []{ return dataReady; });  // Wait until dataReady is true
+
+            //lastLine = read_Last_Line(file);
+            // Process the new line
+            ll = lastLine;
+            //std::cout << "Processing new line: " << lastLine << std::endl;
+            // Reset the flag and release the lock
+            dataReady = false;
+            lk.unlock();
             //std::cout << "Most recent line: " << lastLine << std::endl;
-                if(updateValues(lastLine, interval, posAng)){
+                if(updateValues(ll, interval, posAng)){
+                    //posAng[3] += 180;
                     if(posAng[0] != prevPosAng[0] || posAng[1] != prevPosAng[1] || posAng[2] != prevPosAng[2] || posAng[3] != prevPosAng[3]){
                         //auto start = chrono::high_resolution_clock::now();
                         endVal = chrono::high_resolution_clock::now();
@@ -252,11 +311,13 @@ int main() {
                     }cout << endl << endl;*/
                 }
 
+            
+
 
             //else {
                 //std::cerr << "Unable to open file! Error: " << strerror(errno) << std::endl;
             //}
-        }
+        //}
         //file.clear(); 
         // Sleep for a short duration before checking again
         //std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -270,3 +331,7 @@ int main() {
 
     return 0;
 }
+
+
+
+//sv_cheats 1;sv_enablebunnyhopping 1;sv_maxvelocity 7000;sv_staminamax 0;sv_staminalandcost 0;sv_staminajumpcost 0;sv_accelerate_use_weapon_speed 0;sv_staminarecoveryrate 0;sv_autobunnyhopping 1;sv_airaccelerate 2000;mp_warmup_offline_enabled 1;mp_warmuptime 99999;cl_allow_multi_input_binds 1;mp_warmup_start;

@@ -13,7 +13,7 @@ int main() {
         keybd_event('L', 0, KEYEVENTF_KEYUP, 0);
 
         // Sleep for 100ms to avoid overwhelming the system
-        Sleep(7);  // Adjust the delay if needed
+        Sleep(16);  // Adjust the delay if needed
     }
     return 0;
 }
