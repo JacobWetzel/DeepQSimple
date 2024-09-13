@@ -2,7 +2,7 @@
 #include <iostream>
 
 int main() {
-    Sleep(10000);
+    Sleep(5000);
     while(true) {
         if (GetAsyncKeyState(VK_DOWN) & 0x8000) {
             //std::cout << "Up arrow key pressed!\n";
@@ -13,7 +13,7 @@ int main() {
         keybd_event('L', 0, KEYEVENTF_KEYUP, 0);
 
         // Sleep for 100ms to avoid overwhelming the system
-        Sleep(16);  // Adjust the delay if needed
+        Sleep(75);  // Adjust the delay if needed
     }
     return 0;
 }

@@ -79,10 +79,10 @@ class DQN(nn.Module):
 # TAU is the update rate of the target network
 # LR is the learning rate of the `AdamW optimizer
 BATCH_SIZE = 3000
-GAMMA = 0.93
-EPS_START = 0.5
+GAMMA = 0.985
+EPS_START = 0.8
 EPS_END = 0.1
-EPS_DECAY = 1000
+EPS_DECAY = 10000
 TAU = 0.02
 LR = 1e-4
 
@@ -242,7 +242,10 @@ for i_episode in range(num_episodes):
         stp += 1
         action = select_action(state)
         observation, reward, terminated, truncated, _ = env.step(action.item())
-        print(observation[0], observation[1], observation[2], observation[4], observation[5], observation[6])
+        print(observation[0], observation[1], observation[2], observation[4], observation[5], observation[6], "\n\n")
+        if reward > 100000 and observation[0] < 3808:
+            print("REWARD TOO BIG")
+            time.sleep(1000)
         #print("State obs shape:", observation.shape)
         ep_reward += reward
         reward = torch.tensor([reward], device=device)

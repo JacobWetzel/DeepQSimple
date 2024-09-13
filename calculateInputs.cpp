@@ -2,42 +2,47 @@
 
 using namespace std;
 
+double furthestXPos = -250.0;
+int curBlock = 0;
+
+
 CalculateInputs::CalculateInputs(){
     //x is from start looking to end, y is left right, z is up down (as defined by the map, x y z arbitrary)
 
     //INVERTED THE Y VALUES ON ONLY THE 4 WALLS
-    bd = {{{-320, 160, 32}, {1024, 1088, 64}}, {{-1184, -128, 64}, {64, 1792, 640}}, {{2144, -1024, 64}, {6720, 128, 640}},
-    {{2112, 736, 64}, {6528, 64, 640}}, 
-    {{5344, -96, 0}, {64, 1856, 768}},
-    {{2368, -512, 128}, {64, 384, 576}},
-    {{3180, -151.962, 80}, {64, 384, 608}},
+     bd = {{{-320.0, 160.0, 32.0}, {1024.0, 1088.0, 64.0}}, {{-1184.0, -128.0, 64.0}, {64.0, 1792.0, 640.0}}, {{2144.0, -1024.0, 64.0}, {6720.0, 128.0, 640.0}},
+    {{2112.0, 736.0, 64.0}, {6528.0, 64.0, 640.0}}, 
+    {{5344.0, -96.0, 0.0}, {64.0, 1856.0, 768.0}},
+    {{2368.0, -512.0, 128.0}, {64.0, 384.0, 576.0}},
+    {{3180.0, -151.962, 80.0}, {64.0, 384.0, 608.0}},
 
-    {{352, -96, 32},{192, 192, 64}},
-    {{512, 160, 32},{128, 192, 64}},
-    {{704, 128, 32},{128, 128, 64}},
-    {{864, 352, 32},{64, 64, 64}},
-    {{864, -128, 32},{192, 128, 64}},
-    {{1152, 128, 32},{128, 128, 64}},
-    {{1312, 352, 32},{64, 64, 64}},
-    {{1440, -128, 32},{192, 192, 64}},
-    {{1568, 160, 32},{64, 64, 64}},
-    {{1632, 544, 32},{64, 64, 64}},
-    {{1792, 256, 32},{128, 128, 64}},
-    {{1856, -192, 32},{128, 128, 64}},
-    {{1920, 512, 32},{128, 128, 64}},
-    {{2112, 160, 32},{256, 192, 64}},
-    {{2144, 608, 32},{64, 64, 64}},
-    {{2400, 288, 32},{64, 64, 64}},
-    {{2592, 640, 32},{64, 128, 64}},
-    {{2848, 192, 32},{320, 256, 64}},
-    {{2880, -256, 32},{128, 128, 64}},
-    {{3200, 640, 32},{256, 128, 64}},
-    {{3264, -224, 32},{256, 192, 64}},
-    {{3488, 128, 32},{192, 256, 64}},
-    {{2680, 608, 32},{64, 64, 64}},
-    {{4480, 0, 32},{1344, 1472, 64}}
+    {{352.0, -96.0, 32.0},{192.0, 192.0, 64.0}},
+    {{512.0, 160.0, 32.0},{128.0, 192.0, 64.0}},
+    {{704.0, 128.0, 32.0},{128.0, 128.0, 64.0}},
+    {{864.0, 352.0, 32.0},{64.0, 64.0, 64.0}},
+    {{864.0, -128.0, 32.0},{192.0, 128.0, 64.0}},
+    {{1152.0, 128.0, 32.0},{128.0, 128.0, 64.0}},
+    {{1312.0, 352.0, 32.0},{64.0, 64.0, 64.0}},
+    {{1440.0, -128.0, 32.0},{192.0, 192.0, 64.0}},
+    {{1568.0, 160.0, 32.0},{64.0, 64.0, 64.0}},
+    {{1632.0, 544.0, 32.0},{64.0, 64.0, 64.0}},
+    {{1792.0, 256.0, 32.0},{128.0, 128.0, 64.0}},
+    {{1856.0, -192.0, 32.0},{128.0, 128.0, 64.0}},
+    {{1920.0, 512.0, 32.0},{128.0, 128.0, 64.0}},
+    {{2112.0, 160.0, 32.0},{256.0, 192.0, 64.0}},
+    {{2144.0, 608.0, 32.0},{64.0, 64.0, 64.0}},
+    {{2400.0, 288.0, 32.0},{64.0, 64.0, 64.0}},
+    {{2592.0, 640.0, 32.0},{64.0, 128.0, 64.0}},
+    {{2848.0, 192.0, 32.0},{320.0, 256.0, 64.0}},
+    {{2880.0, -256.0, 32.0},{128.0, 128.0, 64.0}},
+    {{3200.0, 640.0, 32.0},{256.0, 128.0, 64.0}},
+    {{3264.0, -224.0, 32.0},{256.0, 192.0, 64.0}},
+    {{3488.0, 128.0, 32.0},{192.0, 256.0, 64.0}},
+    {{2680.0, 608.0, 32.0},{64.0, 64.0, 64.0}},
+    {{4480.0, 0.0, 32.0},{1344.0, 1472.0, 64.0}}
     };
     
+    // {{{xi, yi, zi}, {xj, yj, zj}, {xk, yk, zk}, {xu, yu, zu}}, . . . }
     
      //, {{2500, 500, 32}, {5000, 100, 200}}};
     //bd = {{{-320, 160, 32}, {1024, 1088, 64}}, {{352, -92, 32},{192, 192, 64}}, {{512, 160, 32},{128, 192, 64}}, {{704, 128, 32},{128, 128, 64}}, {{864, -128, 32},{}}, {{},{}}, };
@@ -60,6 +65,10 @@ CalculateInputs::CalculateInputs(){
     for(int i = 0; i < blockFaces4.size(); i++){
         fourRadFaces.push_back(blockFaces4[i]);
     }
+    sortedTopFaces = allBlocks;
+    sort(sortedTopFaces.begin(), sortedTopFaces.end(), [](vector<vector<double>>& a, vector<vector<double>>& b){
+        return a[0][0] < b[0][0];
+    });
     //fourRadFaces = {blockFaces0, blockFaces2, blockFaces3, blockFaces4};
 }
 
@@ -144,50 +153,78 @@ vector<vector<vector<double>>> CalculateInputs::calculateBlockPositions(int face
 
 
 vector<double> CalculateInputs::GetNNInputs(vector<double>& playerPos, double dt){
-    int numBlocksToFind = 2;
+    int numBlocksToFind = 5;
     vector<int> dists(numBlocksToFind);
-    vector<double> retval(numBlocksToFind * 3);
+    vector<double> retval;//(numBlocksToFind * 3);
     priority_queue<pair<double, int>> closest;
     double xSpeed, ySpeed, zSpeed, xAccel, yAccel, zAccel, angChange, smallestDist;
+    
 
 
     //calculate the numbBlocksToFind closest blocks, store their x, y, z in double vector of doubles
-    for(int i = 0; i < allBlocks.size(); i++){
-
-        smallestDist = 1000000000.0;
-        for(int j = 0; j < allBlocks[i].size(); j++){  
-            smallestDist = min(smallestDist, abs(playerPos[0] - allBlocks[i][j][0]) + abs(playerPos[1] - allBlocks[i][j][1]) + abs(playerPos[2] - allBlocks[i][j][2]));
-        }
-        if(closest.size() < numBlocksToFind){
-            closest.push({smallestDist, i});
-        }else{
-            if(closest.top().first >= smallestDist){
-                closest.pop();
+    for(int i = 0; i < bd.size(); i++){
+        if(playerPos[0] <= allBlocks[i][2][0]) {
+            smallestDist = 1000000000.0;
+            //for(int j = 0; j < allBlocks[i].size(); j++){ 
+            smallestDist = min(smallestDist, abs(playerPos[0] - bd[i][0][0]) + abs(playerPos[1] - bd[i][0][1]) + abs(playerPos[2] - bd[i][0][2]));
+            //}
+            if(closest.size() < numBlocksToFind){
                 closest.push({smallestDist, i});
+            }else{
+                if(closest.top().first >= smallestDist){
+                    closest.pop();
+                    closest.push({smallestDist, i});
+                }
+            }
+        }
+    }
+    priority_queue<pair<double, int>> topsLeftQ;
+
+    if(closest.size() < numBlocksToFind){
+        int topsLeft = numBlocksToFind - closest.size();
+        for(int i = 0; i < bd.size(); i++){
+            if(playerPos[0] > allBlocks[i][2][0]) {
+                smallestDist = 1000000000.0;
+                //for(int j = 0; j < allBlocks[i].size(); j++){ 
+                smallestDist = min(smallestDist, abs(playerPos[0] - bd[i][0][0]) + abs(playerPos[1] - bd[i][0][1]) + abs(playerPos[2] - bd[i][0][2]));
+                //}
+                if(topsLeftQ.size() < topsLeft){
+                    topsLeftQ.push({smallestDist, i});
+                }else{
+                    if(topsLeftQ.top().first >= smallestDist){
+                        topsLeftQ.pop();
+                        topsLeftQ.push({smallestDist, i});
+                    }
+                }
             }
         }
     }
 
-    int itr = numBlocksToFind - 1;
+    int itr = closest.size() - 1;
     while(closest.size() > 0){
         dists[itr] = closest.top().second;
         closest.pop();
         itr--;
     }
-
+    itr = numBlocksToFind-1;
+    while(topsLeftQ.size() > 0){
+        dists[itr] = topsLeftQ.top().second;
+        topsLeftQ.pop();
+        itr--;
+    }
     
 
     // calculating the speed, theta change, and accel since previous timestep
-
-    xSpeed = (playerPos[0] - prevXPos) / dt;
-    ySpeed = (playerPos[1] - prevYPos) / dt;
-    zSpeed = (playerPos[2] - prevZPos) / dt;
-    xAccel = (xSpeed - prevXSpeed) / dt;
-    yAccel = (ySpeed - prevYSpeed) / dt;
-    zAccel = (zSpeed - prevZSpeed) / dt;
+    dt = dt / 1000.0;
+    xSpeed = (playerPos[0] - prevXPos) / (dt);
+    ySpeed = ((playerPos[1] - prevYPos) / ((dt)));
+    zSpeed = ((playerPos[2] - prevZPos) / (dt));
+    xAccel = (xSpeed - prevXSpeed) / ((dt));
+    yAccel = (ySpeed - prevYSpeed) / ((dt));
+    zAccel = (zSpeed - prevZSpeed) / ((dt));
     angChange = (playerPos[3] - prevAng);
 
-
+    cout << "xspeed " << xSpeed << endl;
     //update variables to have up to date prev-values
     prevXPos = playerPos[0];
     prevYPos = playerPos[1];
@@ -200,13 +237,20 @@ vector<double> CalculateInputs::GetNNInputs(vector<double>& playerPos, double dt
     retval = {playerPos[0], playerPos[1], playerPos[2], playerPos[3], xSpeed, ySpeed, zSpeed, angChange, xAccel, yAccel, zAccel};
 
     for(int i = 0; i < dists.size(); i++){
+        retval.push_back(playerPos[0] - bd[dists[i]][0][0]);
+        retval.push_back(playerPos[1] - bd[dists[i]][0][1]);
+        retval.push_back(playerPos[2] - bd[dists[i]][0][2]);
+        retval.push_back(bd[dists[i]][1][0]);
+        retval.push_back(bd[dists[i]][1][1]);
+
+        /*
         for(int j = 0; j < allBlocks[dists[i]].size(); j++){
-            for(int k = 0; k < 4; k++){
-                retval.push_back(allBlocks[dists[i]][k][0]);
-                retval.push_back(allBlocks[dists[i]][k][1]);
-                retval.push_back(allBlocks[dists[i]][k][2]);
-            }
+        for(int k = 0; k < 4; k++){
+        retval.push_back(allBlocks[dists[i]][k][0]);
+        retval.push_back(allBlocks[dists[i]][k][1]);
+        retval.push_back(allBlocks[dists[i]][k][2]);
         }
+        }*/
     }
 
     vector<double> distFromFaces(10);
@@ -217,6 +261,18 @@ vector<double> CalculateInputs::GetNNInputs(vector<double>& playerPos, double dt
         retval.push_back(distFromFaces[i]);
     }
 
+    if(playerPos[2] < 140 && playerPos[0] > farthestXPos){
+        for(int i = 0; i < sortedTopFaces.size(); i++){
+            if(isInBlock(playerPos, i) && i > curBlock){
+                curBlock = i;
+                farthestXPos == playerPos[0];
+                retval.push_back(1);
+                return retval;
+            }
+        }
+    }
+
+    retval.push_back(0);
     return retval;
 
 
@@ -334,4 +390,11 @@ void CalculateInputs::calculateRadialDistances(vector<double>& playerPos, vector
 
 }
 
+bool CalculateInputs::isInBlock(vector<double>& playerPos, int blockIndex){
+    cout << playerPos[0] << " " <<  sortedTopFaces[blockIndex][0][0]  << " " << sortedTopFaces[blockIndex][2][0] << " " << playerPos[1] << " " << sortedTopFaces[blockIndex][0][1] << " " << sortedTopFaces[blockIndex][1][1] << endl  << endl;
+    if(playerPos[0] >= sortedTopFaces[blockIndex][0][0] && playerPos[0] <= sortedTopFaces[blockIndex][2][0] && playerPos[1] >= sortedTopFaces[blockIndex][0][1] && playerPos[1] >= sortedTopFaces[blockIndex][1][1]){
+        return true;
+    }
+    return false;
+}
 
