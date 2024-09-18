@@ -15,6 +15,8 @@
 #include "calculateInputs.h"
 #include <mutex>
 #include <condition_variable>
+#include <windows.h>
+#include <mmsystem.h>
 
 using namespace std;
 
@@ -23,8 +25,23 @@ std::condition_variable cv;
 std::string lastLine;
 bool dataReady = false;
 
+auto lRead = std::chrono::high_resolution_clock::now();
+
+auto pressL(){
+
+    // Simulate pressing the 'l' key
+    keybd_event('L', 0, 0, 0);
+    keybd_event('L', 0, KEYEVENTF_KEYUP, 0);
+    auto retval = std::chrono::high_resolution_clock::now();
+    // Sleep for 100ms to avoid overwhelming the system
+    //Sleep(25);  // Adjust the delay if needed
+    return retval;
+
+}
+
+
 //true for successful read, false for bad read
-bool updateValues(string str, long long interval, vector<double>& posAng){
+bool updateValues(string str, vector<double>& posAng){
     //auto start = std::chrono::high_resolution_clock::now();
 
     if(str.size() <= 21){return false;}
@@ -111,7 +128,7 @@ void writeDoublesToFile(const std::vector<double>& data, const std::string& file
     int i = 0;
     // Write each double to the file on a new line
     for (const auto& value : data) {
-        oss[i] << std::fixed << std::setprecision(6) << value;
+        oss[i] << std::fixed << std::setprecision(2) << value;
         //outfile << std::fixed << std::setprecision(6) << value << std::endl;
         i++;
     }
@@ -222,7 +239,8 @@ void lc(string logFilePath){
 void monitorFileUpdates(const std::string& filePath) {
     std::ifstream file(filePath, std::ios::binary);
     std::string line;
-    
+    string curLine = "";
+    string prevLine = "";
     //std::streampos lastPos = file.end;
     file.seekg(0, std::ios::end); 
     if (!file.is_open()) {
@@ -231,25 +249,34 @@ void monitorFileUpdates(const std::string& filePath) {
     }
     std::streampos lastPos = file.tellg();
     int i = 0;
+    auto t = chrono::high_resolution_clock::now();
+    t = pressL();
     while (true) {
         try{
-            file.seekg(lastPos);
+            i = 0;
 
+            file.seekg(lastPos);
             if (std::getline(file, line)) {
-                lastLine = line;
-                dataReady = true;
-                //file.seekg(0, std::ios::end);
+                curLine = line;
                 lastPos = file.tellg();
+                t = pressL();
             } else if (file.eof()) {
+                //cout << "Here?\n";
                 file.clear();  // Clear EOF to allow further reading if the file is updated
                 file.seekg(lastPos);  // Stay at the last known good position
                 // Consider notifying the main thread that EOF was reached
                 // Optionally, you could also use a separate flag or condition to indicate EOF state
             }
-            lastPos = file.tellg();
+            if(curLine != prevLine){
+                mtx.lock();
+                lastLine = curLine;    
+                lRead = t;
+                mtx.unlock();
+                prevLine = curLine;
+                lastPos = file.tellg();
+            }
 
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            Sleep(10);
         }
         catch(exception e){
             cout << "exception" << endl;
@@ -258,68 +285,172 @@ void monitorFileUpdates(const std::string& filePath) {
     file.close();
 }
 
+void readLastCharacters(const std::string& filename, std::size_t numChars) {
+    std::streampos lastPosition = 0;
+    std::string lastChars;
+    //std::ifstream file(filePath, std::ios::binary);
+    std::string line;
+    std::string curLine = "";
+    std::string prevLine = "";
+    auto t = chrono::high_resolution_clock::now();
+    //std::ifstream file(filename, std::ios::binary | std::ios::ate);
+
+    // Open the file once before the polling loop
+    std::ifstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Unable to open file: " << filename << std::endl;
+        return;
+    }
+    bool isT = false;
+    while (true) {
+        // Clear any EOF or fail flags
+        file.clear();
+
+        // Get the current file size
+        file.seekg(0, std::ios::end);
+        std::streampos fileSize = file.tellg();
+
+        // Check if the file has been truncated or rotated
+        if (fileSize < lastPosition) {
+            lastPosition = 0;
+            file.seekg(0, std::ios::beg);
+        }
+
+        // Proceed if the file has grown or changed
+
+        if (fileSize != lastPosition) {
+            isT = true;
+            // Determine how many characters to read
+            std::size_t charsToRead = static_cast<std::size_t>(fileSize) < numChars
+                                    ? static_cast<std::size_t>(fileSize)
+                                    : numChars;
+
+            // Seek to the position to start reading
+            file.seekg(-static_cast<std::streamoff>(charsToRead), std::ios::end);
+
+            // Read the characters into a buffer
+            std::string buffer(charsToRead, '\0');
+            file.read(&buffer[0], charsToRead);
+
+            // If the last characters have changed, process them
+            if (buffer != lastChars) {
+                lastChars = buffer;
+                //std::cout << lastChars << std::endl;
+                for (int i = 20; i < 30; i++) {
+                    if (lastChars.substr(i, 6) == "setpos") {
+                        mtx.lock();
+                        lastLine = lastChars.substr(i, lastChars.size() - i);
+                        //std::cout << lastLine << std::endl;
+                        lRead = t;
+                        mtx.unlock();
+                        break;
+                    }
+                }
+                //std::cout << lastChars << std::endl;
+            }
+            // Update the last known position
+            lastPosition = fileSize;
+
+        }
+        if(isT){
+            isT = false;
+            auto prev = t;
+            t = pressL();
+            //cout << "timeBetweenReads  " << (long long)(std::chrono::duration_cast<std::chrono::milliseconds>(t - prev).count()) << endl;;
+        }
+        // Wait before polling again
+        else{
+            Sleep(5);
+        }
+    }
+
+    // Close the file when done (this code is unreachable due to the infinite loop)
+    file.close();
+}
 
 
 int main() {
+    timeBeginPeriod(1);
+    Sleep(5000);
     std::string filename = R"(C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log)";
     std::thread fileMonitor(monitorFileUpdates, filename);  // Start the monitor in a new thread
+    //std::thread fileMonitor(readLastCharacters, filename, 100);
+    
     //std::thread fileMonitor(readLastLine, filename);  // Start the monitor in a new thread
-    //std::thread fileMonitor(lc, filename); 
+    //std::thread fileMonitor(lc, filename);
     fileMonitor.detach();
-    CalculateInputs ci = CalculateInputs();
+    
+    
     bool isTr = false;
+    auto prevT = chrono::high_resolution_clock::now();
+    auto st = chrono::high_resolution_clock::now();
     long long interval = 0;
+
     vector<double> posAng(4, 0.0);
     vector<double> prevPosAng(4, 0.0);
     string ll = "";
+    CalculateInputs *ci = NULL;//new CalculateInputs(posAng);
 
-    auto st = chrono::high_resolution_clock::now();
     auto endVal = chrono::high_resolution_clock::now();
     int itr = 0;
     while (true) {
 
-            if((long long)(std::chrono::duration_cast<std::chrono::milliseconds>(endVal - st).count()) > 400){
-                ci = CalculateInputs();
-            }
+            //cout << (long long)(std::chrono::duration_cast<std::chrono::milliseconds>(curTime - st).count()) << endl;
             //lastLine = read_Last_Line(file);
             // Process the new line
-            ll = lastLine;
+            auto pre = chrono::high_resolution_clock::now();
+
+            mtx.lock();
+                ll = lastLine;
+                st = lRead;
+            mtx.unlock();
+
+            auto curTime = chrono::high_resolution_clock::now();
+            if((long long)(/*std::chrono::duration_cast<std::chrono::milliseconds>(curTime - prevT).count()) > 1000 ||*/ ci == NULL)){
+                delete(ci);
+                ci = new CalculateInputs(posAng);
+            }
             //std::cout << "Processing new line: " << ll << std::endl;
             // Reset the flag and release the lock
-            try{isTr = updateValues(ll, interval, posAng);}
+            try{isTr = updateValues(ll, posAng);}
             catch(exception e){cout << "read exception\n";}
             
-            try{
+            
                 if(isTr){
                     //posAng[3] += 180;
+                    for (double& num : posAng) {
+                        num = std::round(num * 100.0) / 100.0;
+                    }
                     if(posAng[0] != prevPosAng[0] || posAng[1] != prevPosAng[1] || posAng[2] != prevPosAng[2] || posAng[3] != prevPosAng[3]){
                         if(abs(posAng[0]) > 5000  || abs(posAng[1]) > 2000 || abs(posAng[2]) > 1000){
-                            cout << ll << " " << posAng[0] << " " << posAng[1] << " " << posAng[2] << endl;
-                            while(true){
-                                std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                            }
+                            continue;
                         }
-                        endVal = chrono::high_resolution_clock::now();
-                        interval = (long long)(std::chrono::duration_cast<std::chrono::milliseconds>(endVal - st).count());
-                        st = chrono::high_resolution_clock::now();
-                        interval = interval == 0 ? 80 : interval;
-                        interval = max(interval, (long long)75);
-                        vector<double> calculatedInputs = ci.GetNNInputs(posAng, interval);
-                        printf("%ld\n", interval);
-                        std::cout << std::fixed << std::setprecision(6) << posAng[0] << " " << posAng[1] << " " << posAng[2] << " " << posAng[3] << std::endl;
+                        //endVal = chrono::high_resolution_clock::now();
+
+                        interval = (long long)(std::chrono::duration_cast<std::chrono::microseconds>(st - prevT).count());
+                        prevT = st;
+
+                        //printf("%ld int \n", interval);
+                        //std::cout << std::fixed << std::setprecision(6) << posAng[0] << " " << posAng[1] << " " << posAng[2] << " " << posAng[3] << std::endl;
+                        //printf("%lf ang \n", posAng[3]);
+                        cout << interval << " " << posAng[3] << endl;
+                        //st = chrono::high_resolution_clock::now();
+                        //interval = max(interval, (long long)25);
+                        vector<double> calculatedInputs = ci->GetNNInputs(posAng, interval);
+
                         //interval = 0;
 
 
                         writeDoublesToFile(calculatedInputs, "nnValues.txt");
                         //interval = 0;
                         prevPosAng = posAng;
+                        auto post = chrono::high_resolution_clock::now();
+                        //cout << "rt " << (long long)(std::chrono::duration_cast<std::chrono::microseconds>(post - pre).count()) << endl;;
                     }
 
                 }
-            }catch(exception e){
-                cout << "compute exception" << endl;
-            }
-
+            
+        Sleep(5);
     }
 
     return 0;

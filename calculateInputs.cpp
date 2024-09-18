@@ -2,19 +2,15 @@
 
 using namespace std;
 
-double furthestXPos = -250.0;
-int curBlock = 0;
-
-
-CalculateInputs::CalculateInputs(){
+CalculateInputs::CalculateInputs(vector<double>& posAng){
     //x is from start looking to end, y is left right, z is up down (as defined by the map, x y z arbitrary)
 
     //INVERTED THE Y VALUES ON ONLY THE 4 WALLS
-     bd = {{{-320.0, 160.0, 32.0}, {1024.0, 1088.0, 64.0}}, {{-1184.0, -128.0, 64.0}, {64.0, 1792.0, 640.0}}, {{2144.0, -1024.0, 64.0}, {6720.0, 128.0, 640.0}},
-    {{2112.0, 736.0, 64.0}, {6528.0, 64.0, 640.0}}, 
-    {{5344.0, -96.0, 0.0}, {64.0, 1856.0, 768.0}},
-    {{2368.0, -512.0, 128.0}, {64.0, 384.0, 576.0}},
-    {{3180.0, -151.962, 80.0}, {64.0, 384.0, 608.0}},
+     bd = {{{-320.0, 160.0, 32.0}, {1024.0, 1088.0, 64.0}}, {{-1184.0, 128.0, 64.0}, {64.0, 1792.0, 640.0}}, {{2144.0, 1024.0, 64.0}, {6720.0, 128.0, 640.0}},
+    {{2112.0, -736.0, 64.0}, {6528.0, 64.0, 640.0}}, 
+    {{5344.0, 96.0, 0.0}, {64.0, 1856.0, 768.0}},
+    {{2368.0, 512.0, 128.0}, {64.0, 384.0, 576.0}},
+    {{3180.0, 151.962, 80.0}, {64.0, 384.0, 608.0}},
 
     {{352.0, -96.0, 32.0},{192.0, 192.0, 64.0}},
     {{512.0, 160.0, 32.0},{128.0, 192.0, 64.0}},
@@ -38,7 +34,7 @@ CalculateInputs::CalculateInputs(){
     {{3200.0, 640.0, 32.0},{256.0, 128.0, 64.0}},
     {{3264.0, -224.0, 32.0},{256.0, 192.0, 64.0}},
     {{3488.0, 128.0, 32.0},{192.0, 256.0, 64.0}},
-    {{2680.0, 608.0, 32.0},{64.0, 64.0, 64.0}},
+    {{3680.0, 608.0, 32.0},{64.0, 64.0, 64.0}},
     {{4480.0, 0.0, 32.0},{1344.0, 1472.0, 64.0}}
     };
     
@@ -46,8 +42,8 @@ CalculateInputs::CalculateInputs(){
     
      //, {{2500, 500, 32}, {5000, 100, 200}}};
     //bd = {{{-320, 160, 32}, {1024, 1088, 64}}, {{352, -92, 32},{192, 192, 64}}, {{512, 160, 32},{128, 192, 64}}, {{704, 128, 32},{128, 128, 64}}, {{864, -128, 32},{}}, {{},{}}, };
-
-    prevYPos = prevXPos = prevZPos = prevXSpeed = prevYSpeed = prevZSpeed = prevAng = 0;
+    prevXPos = posAng[0]; prevYPos = posAng[1]; prevZPos = posAng[2]; prevAng = posAng[3];
+    prevXSpeed = prevYSpeed = prevZSpeed = prevAng = 0;
     allBlocks = calculateBlockPositions(1);
     blockFaces0 = calculateBlockPositions(0);
     blockFaces2 = calculateBlockPositions(2);
@@ -69,6 +65,8 @@ CalculateInputs::CalculateInputs(){
     sort(sortedTopFaces.begin(), sortedTopFaces.end(), [](vector<vector<double>>& a, vector<vector<double>>& b){
         return a[0][0] < b[0][0];
     });
+    furthestXPos = -250;
+    curBlock = -1;
     //fourRadFaces = {blockFaces0, blockFaces2, blockFaces3, blockFaces4};
 }
 
@@ -215,7 +213,7 @@ vector<double> CalculateInputs::GetNNInputs(vector<double>& playerPos, double dt
     
 
     // calculating the speed, theta change, and accel since previous timestep
-    dt = dt / 1000.0;
+    dt = dt / 1000000.0;
     xSpeed = (playerPos[0] - prevXPos) / (dt);
     ySpeed = ((playerPos[1] - prevYPos) / ((dt)));
     zSpeed = ((playerPos[2] - prevZPos) / (dt));
@@ -224,7 +222,8 @@ vector<double> CalculateInputs::GetNNInputs(vector<double>& playerPos, double dt
     zAccel = (zSpeed - prevZSpeed) / ((dt));
     angChange = (playerPos[3] - prevAng);
 
-    cout << "xspeed " << xSpeed << endl;
+    //cout << "xspeed " << xSpeed << endl;
+    //printf("%lf x\n", xSpeed);
     //update variables to have up to date prev-values
     prevXPos = playerPos[0];
     prevYPos = playerPos[1];
@@ -261,11 +260,12 @@ vector<double> CalculateInputs::GetNNInputs(vector<double>& playerPos, double dt
         retval.push_back(distFromFaces[i]);
     }
 
-    if(playerPos[2] < 140 && playerPos[0] > farthestXPos){
+    if(playerPos[2] < 140 && playerPos[0] > furthestXPos){
         for(int i = 0; i < sortedTopFaces.size(); i++){
             if(isInBlock(playerPos, i) && i > curBlock){
+                //cout << "in block i: " << i << " " << sortedTopFaces[i][0][0] << " " << sortedTopFaces[i][0][1] << " " << sortedTopFaces[i][3][0] << " " << sortedTopFaces[i][3][1] << endl;
                 curBlock = i;
-                farthestXPos == playerPos[0];
+                furthestXPos == playerPos[0];
                 retval.push_back(1);
                 return retval;
             }
@@ -296,7 +296,7 @@ vector<vector<vector<double>>> CalculateInputs::pruneFacesByZValue(double zVal){
 pair<double, double> CalculateInputs::calculateMB(vector<vector<double>>& face, vector<double>& playerPos){
     double m;
     double b;
-    m = (face[0][0] - face[1][0]) / (face[0][1] - face[1][1]);
+    m = (face[0][0] - face[1][0]) / (-1 * (face[0][1] - face[1][1]));
     if(m == INFINITY || m == -INFINITY){
         b = m == INFINITY ? m : -INFINITY;
     }
@@ -304,7 +304,8 @@ pair<double, double> CalculateInputs::calculateMB(vector<vector<double>>& face, 
         b = face[0][0] - playerPos[0];
     }
     else{
-        b = (face[0][0] - playerPos[0]) - ((face[0][1] - (playerPos[1] * -1)) * m);
+        b = (face[0][0] - playerPos[0]) - (((face[0][1] * -1) - (playerPos[1] * -1)) * m);
+        //b = (face[0][0] - playerPos[0]) - ((face[0][1] - (playerPos[1])) * m);   
     }
     return {m, b};
 }
@@ -318,7 +319,9 @@ double CalculateInputs::findDist(vector<vector<double>>& face, vector<double>& p
     if(angSlope == mb.first){return INFINITY;}
 
     if(mb.first == INFINITY || mb.first == -INFINITY){
-        xIntersect = face[0][1] - (-1 * playerPos[1]);
+        xIntersect = (face[0][1] * -1) - (-1 * playerPos[1]);
+        //xIntersect = face[0][1] - (playerPos[1]);
+        
         yIntersect = angSlope * (xIntersect);
     }
     else if(mb.first == 0){
@@ -333,10 +336,15 @@ double CalculateInputs::findDist(vector<vector<double>>& face, vector<double>& p
 
     double distance = sqrt(pow(yIntersect, 2) + pow(xIntersect, 2));
 
-    double xLarge = max(face[0][1] - (playerPos[1] * -1), face[1][1] - (playerPos[1] * -1));
+    double xLarge = max((face[0][1] * -1) - (playerPos[1] * -1), (face[1][1] * -1) - (playerPos[1] * -1));
+    //double xLarge = max((face[0][1]) - (playerPos[1]), face[1][1] - (playerPos[1]));
+    
     //cout << face[0][1] << " " << face[1][1] << endl;
     double yLarge = max(face[0][0] - playerPos[0], face[1][0] - playerPos[0]);
-    double xMin = min(face[0][1] - (playerPos[1] * -1), face[1][1] - (playerPos[1] * -1));
+    
+    double xMin = min((face[0][1] * -1) - (playerPos[1] * -1), (face[1][1] * -1) - (playerPos[1] * -1));
+    //double xMin = min(face[0][1] - (playerPos[1]), face[1][1] - (playerPos[1]));
+    
     double yMin = min(face[0][0] - playerPos[0], face[1][0] - playerPos[0]);
 
     //cout << "xint, yint, xlarge, xmin, ylarge, ymin " << xIntersect << " " << yIntersect << " " << xLarge << " " << xMin << " " << yLarge << " " << yMin << endl;
@@ -391,8 +399,8 @@ void CalculateInputs::calculateRadialDistances(vector<double>& playerPos, vector
 }
 
 bool CalculateInputs::isInBlock(vector<double>& playerPos, int blockIndex){
-    cout << playerPos[0] << " " <<  sortedTopFaces[blockIndex][0][0]  << " " << sortedTopFaces[blockIndex][2][0] << " " << playerPos[1] << " " << sortedTopFaces[blockIndex][0][1] << " " << sortedTopFaces[blockIndex][1][1] << endl  << endl;
-    if(playerPos[0] >= sortedTopFaces[blockIndex][0][0] && playerPos[0] <= sortedTopFaces[blockIndex][2][0] && playerPos[1] >= sortedTopFaces[blockIndex][0][1] && playerPos[1] >= sortedTopFaces[blockIndex][1][1]){
+    //cout << playerPos[0] << " " << sortedTopFaces[blockIndex][0][0] << " " << sortedTopFaces[blockIndex][2][0] << " " << " " << playerPos[1] << " " << sortedTopFaces[blockIndex][0][1] << " " << sortedTopFaces[blockIndex][1][1] << endl << endl;
+    if(playerPos[0] >= sortedTopFaces[blockIndex][0][0] && playerPos[0] <= sortedTopFaces[blockIndex][2][0] && (playerPos[1]) >= (sortedTopFaces[blockIndex][0][1]) && (playerPos[1] <= (sortedTopFaces[blockIndex][1][1]))){
         return true;
     }
     return false;

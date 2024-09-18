@@ -9,7 +9,7 @@ using namespace std;
 
 class CalculateInputs{
 public:
-    CalculateInputs();
+    CalculateInputs(vector<double>& posAng);
     vector<vector<vector<double>>> bd;
     vector<vector<vector<double>>> allBlocks;
     vector<vector<vector<double>>> blockFaces0;
@@ -34,8 +34,8 @@ public:
     double prevYSpeed;
     double prevZSpeed;
     double prevAng;
-    double farthestXPos;
-
+    double furthestXPos;
+    int curBlock;
 
 
 };

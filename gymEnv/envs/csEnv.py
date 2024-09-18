@@ -51,33 +51,32 @@ class CSEnv(gym.Env):
         self.keyboard.release(Key.space)
         for k in all_keys:
             self.keyboard.release(k)
-        time.sleep(2)
+        time.sleep(0.85)
         rInt = random.randint(0, 5)
         #if rInt == 0:
         if True:
             self.keyboard.press('i')
-            time.sleep(1)
+            time.sleep(1.5)
             self.keyboard.release('i')
-
         '''elif rInt == 1:
             self.keyboard.press('6')
-            time.sleep(1)
+            time.sleep(1.5)
             self.keyboard.release('6')
         elif rInt == 2:
             self.keyboard.press('7')
-            time.sleep(1)
+            time.sleep(1.5)
             self.keyboard.release('7')
         elif rInt == 3:
             self.keyboard.press('8')
-            time.sleep(1)
+            time.sleep(1.5)
             self.keyboard.release('8')
         elif rInt == 4:
             self.keyboard.press('9')
-            time.sleep(1)
+            time.sleep(1.5)
             self.keyboard.release('9')
         else:
             self.keyboard.press('0')
-            time.sleep(1)
+            time.sleep(1.5)
             self.keyboard.release('0')'''
         
         obs = self.game.observe()

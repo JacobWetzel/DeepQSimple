@@ -78,11 +78,11 @@ class DQN(nn.Module):
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the `AdamW optimizer
-BATCH_SIZE = 3000
+BATCH_SIZE = 128
 GAMMA = 0.985
-EPS_START = 0.8
-EPS_END = 0.1
-EPS_DECAY = 10000
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 100000
 TAU = 0.02
 LR = 1e-4
 
@@ -99,7 +99,7 @@ target_net = torch.load('nettFile')
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(10000)
+memory = ReplayMemory(500000)
 
 
 steps_done = 0
@@ -243,9 +243,9 @@ for i_episode in range(num_episodes):
         action = select_action(state)
         observation, reward, terminated, truncated, _ = env.step(action.item())
         print(observation[0], observation[1], observation[2], observation[4], observation[5], observation[6], "\n\n")
-        if reward > 100000 and observation[0] < 3808:
+        '''if reward > 100000 and observation[0] < 3808:
             print("REWARD TOO BIG")
-            time.sleep(1000)
+            time.sleep(1000)'''
         #print("State obs shape:", observation.shape)
         ep_reward += reward
         reward = torch.tensor([reward], device=device)

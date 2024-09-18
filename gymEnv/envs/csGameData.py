@@ -11,11 +11,14 @@ class csGame():
         self.file_path = os.path.join(script_dir, '..', '..', 'nnValues.txt')
         self.timeStep = 0
         self.farthestXPos = -250
-        self.prevNumbers = [None] * 118
+        self.prevNumbers = [None] * 49
         self.numbers = self.read_filled_data()
         self.prevNumbers = self.numbers
         self.prevAction = -1
+        self.maxSpeed=50
         #self.timeStep = 100
+        self.keyboard.press(Key.right)
+        self.keyboard.release(Key.right)
     def action(self, action):
         self.updatePlayer(action)
         return
@@ -41,7 +44,7 @@ class csGame():
                 numbers.append(self.timeStep)
                 numbers.append(self.farthestXPos)
                 # Check if the list has the required length
-                if (len(numbers) == expected_length and ((numbers[:-2] != self.prevNumbers[:-2]) or (time.time() - start_time > 0.1))) :
+                if (len(numbers) == expected_length and ((numbers[:-2] != self.prevNumbers[:-2]) or (time.time() - start_time > 0.2))) :
                     # If we have more than expected, just take the first expected_length values
                     return numbers
                 
@@ -54,29 +57,41 @@ class csGame():
 
     def evaluate(self):
         if(self.isTermCollisionA()):
-            return -100000
+            return -150000
         if(self.isTermCollisionB()):
-            return -10000
+            return -20000
         if(self.isCheeseCollision()):
             return 10000000
-        val1 = self.numbers[4] * 2
-        if(self.numbers[0] > self.farthestXPos):
-            self.farthestXPos = self.numbers[0]
-            val1 += self.numbers[0] - self.prevNumbers[0]
-        #if(val1 < 0):
-        #    val1 = val1 * 1.3
-        val2 = 0
-        self.timeStep += 0.7
-        if(self.numbers[8] > 0):
-            val2 = self.numbers[8]
-        val3 = 0
-        if(self.numbers[4] > 0 and self.numbers[4] > 0):
-            val3 = (abs(self.numbers[9]) * 0.1)
-        print(val1, val2, val3, self.timeStep, (val1) + (val2) + val3 - (self.timeStep))
-        val4 = 0
+        '''        val1 = 0
+                if(self.numbers[0] > self.farthestXPos):
+                    self.farthestXPos = self.numbers[0]
+                    val1 += (self.numbers[0] - self.prevNumbers[0]) ** (self.numbers[4]/self.maxSpeed)
+
+                #if(val1 < 0):
+                #    val1 = val1 * 1.3
+                val2 = 0
+                
+                if(self.numbers[8] > 0 and self.numbers[4]):
+                    tmp = max(self.numbers[8], 100)
+                    val2 = (tmp ** (self.numbers[4] / self.maxSpeed)) * 0.01
+                val3 = 0
+                if(self.numbers[4] > 0 and self.numbers[8] > 0):
+                    val3 = (abs(self.numbers[9]) * 0.1)
+                print(val1, val2, val3, self.timeStep, (val1) + (val2) + val3 - (self.timeStep))
+                val4 = 0
+                if(self.numbers[46] == 1):
+                    val4 = 40000
+                if(self.maxSpeed < self.numbers[4]):
+                    self.maxSpeed = self.numbers[4]'''
+        
+        val1 = val2 = val3 = 0
+        val1 = self.numbers[0] - self.prevNumbers[0]
+        val2 = self.numbers[4] + abs(self.numbers[5]) - 250
         if(self.numbers[46] == 1):
-            val4 = 10000
-        return (val1) + (val2) + val3 + val4 - (self.timeStep)
+            val3 = 40000
+            print("hererererererer")
+        self.timeStep += 0.7
+        return (val1) + (val2) + val3 - self.timeStep#+ val3 + val4 - (self.timeStep)
         
     #IF SENT BACK TO BEGINING OR AT END?
     def is_done(self):
@@ -96,7 +111,9 @@ class csGame():
 
     #UPDATE TO USE CS INTERACTION HANDLER
     def updatePlayer(self, action):
-
+        
+        self.keyboard.press(Key.right)
+        self.keyboard.release(Key.right)
         self.keyboard.release('w')
         #SELECT IN GAME MOVE
         if action == 0: #press Space
@@ -122,6 +139,10 @@ class csGame():
                 self.keyboard.release('p')
                 self.keyboard.press('h')
         self.prevAction = action
+        time.sleep(0.1)
+        self.keyboard.press(Key.left)
+        self.keyboard.release(Key.left)
+        time.sleep(0.1)
         #RECORD THE NEW STATE OF THE GAME 
 
         
