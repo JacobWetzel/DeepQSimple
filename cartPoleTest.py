@@ -32,6 +32,7 @@ device = torch.device(
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
+eps = 0.0
 
 class ReplayMemory(object):
 
@@ -53,16 +54,18 @@ class DQN(nn.Module):
 
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 64)
-        self.layer2 = nn.Linear(64, 64)
-        self.layer3 = nn.Linear(64, n_actions)
+        self.layer1 = nn.Linear(n_observations, 256)
+        self.layer2 = nn.Linear(256, 256)
+        self.layer3 = nn.Linear(256, 128)
+        self.layer4 = nn.Linear(128, n_actions)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        return self.layer3(x)
+        x = F.relu(self.layer3(x))
+        return self.layer4(x)
     
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
@@ -72,11 +75,11 @@ class DQN(nn.Module):
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the `AdamW optimizer
-BATCH_SIZE = 1280
-GAMMA = 0.9
+BATCH_SIZE = 128
+GAMMA = 0.99
 EPS_START = 0.9
 EPS_END = 0.05
-EPS_DECAY = 1000
+EPS_DECAY = 2000
 TAU = 0.005
 LR = 1e-4
 
@@ -85,13 +88,13 @@ n_actions = env.action_space.n
 # Get the number of state observations
 state, info = env.reset()
 n_observations = len(state)
-
+print("nobs = ", n_observations)
 policy_net = DQN(n_observations, n_actions).to(device)
 target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(10000)
+memory = ReplayMemory(1000000)
 
 
 steps_done = 0
@@ -102,6 +105,8 @@ def select_action(state):
     sample = random.random()
     eps_threshold = EPS_END + (EPS_START - EPS_END) * \
         math.exp(-1. * steps_done / EPS_DECAY)
+    global eps
+    eps = eps_threshold
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
@@ -192,7 +197,7 @@ def optimize_model():
 
 
 if torch.cuda.is_available() or torch.backends.mps.is_available():
-    num_episodes = 6000
+    num_episodes = 60000
 else:
     num_episodes = 50
 
@@ -207,6 +212,7 @@ for i_episode in range(num_episodes):
         done = terminated or truncated
 
         if terminated:
+            print(eps)
             next_state = None
         else:
             next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)

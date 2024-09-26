@@ -5,6 +5,7 @@ from gymEnv.envs.csGameData import csGame
 from pynput.keyboard import Key, Controller
 import time
 import random
+import os
 
 
 class CSEnv(gym.Env):
@@ -16,30 +17,36 @@ class CSEnv(gym.Env):
         self.keyboard = Controller()
         self.keyboard.press('i')
         self.keyboard.release('i')
+        script_dir = os.path.dirname(__file__)
+        self.file_path = os.path.join(script_dir, '..', '..', 'nnValues.txt')
         self.game = csGame()
-        self.action_space = spaces.Discrete(4)
+        self.action_space = spaces.Discrete(3)
+        #self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Box(np.array([
         -10000.0, -10000.0,-10000.0, -10000.0, -10000.0, -10000.0,-10000.0, -10000.0, 
+        -10000.0, -10000.0, -10000.0,-10000.0, -10000.0,
+        -10000.0, -10000.0, -10000.0,-10000.0, -10000.0,
         -10000.0, -10000.0, -10000.0, -10000.0,-10000.0, -10000.0, -10000.0, -10000.0,
         -10000.0, 
         -10000.0, -10000.0, -10000.0, -10000.0,-10000.0, -10000.0, -10000.0, -10000.0,
         -10000.0, -10000.0, -10000.0, -10000.0,-10000.0, -10000.0, -10000.0, -10000.0, -10000.0
         -10000.0, -10000.0, -10000.0, -10000.0,-10000.0, -10000.0, -10000.0, -10000.0, -10000.0
-        -10000.0, -10000.0, -10000.0, -10000.0,-10000.0, 0, -20000.0, -600.0
+        -10000.0, -10000.0, -10000.0, -10000.0,-10000.0, -10000.0, -20000.0, -600.0
          ]), 
          np.array([
          10000.0, 
          10000.0, 10000.0,10000.0, 10000.0, 10000.0, 10000.0,
+         10000.0,10000.0, 10000.0, 10000.0, 10000.0,
+         10000.0,10000.0, 10000.0, 10000.0, 10000.0,
          10000.0, 10000.0,10000.0, 10000.0, 10000.0, 10000.0,
          10000.0, 10000.0,10000.0, 10000.0, 10000.0, 10000.0,
         10000.0, 10000.0,10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0,
          10000.0, 10000.0,10000.0, 10000.0, 10000.0, 10000.0, 10000.0,
          10000.0, 10000.0,10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0,
-         10000.0, 10000.0,10000.0, 10000.0, 1, 20000.0, 10000.0
-         ]), (49,), np.float32)
+         10000.0, 10000.0,10000.0, 10000.0, 10000.0, 20000.0, 10000.0
+         ]), (59,), np.float32)
     def reset(self, seed=None, options=None):
         del self.game
-        self.game = csGame()
         self.keyboard.press('p')
         self.keyboard.release('p')
         self.keyboard.press('p')
@@ -49,36 +56,40 @@ class CSEnv(gym.Env):
         all_keys = [
             'd', 'e', 'f', 'g', 'h', 'i', 'o', 'p', 'w']
         self.keyboard.release(Key.space)
+        self.keyboard.press(Key.right)
+        self.keyboard.release(Key.right)
         for k in all_keys:
             self.keyboard.release(k)
-        time.sleep(0.85)
+        time.sleep(0.55)
         rInt = random.randint(0, 5)
         #if rInt == 0:
-        if True:
+        if rInt == 0:
             self.keyboard.press('i')
-            time.sleep(1.5)
+            time.sleep(0.85)
             self.keyboard.release('i')
-        '''elif rInt == 1:
+        elif rInt == 1:
             self.keyboard.press('6')
-            time.sleep(1.5)
+            time.sleep(0.85)
             self.keyboard.release('6')
         elif rInt == 2:
             self.keyboard.press('7')
-            time.sleep(1.5)
+            time.sleep(0.85)
             self.keyboard.release('7')
         elif rInt == 3:
             self.keyboard.press('8')
-            time.sleep(1.5)
+            time.sleep(0.85)
             self.keyboard.release('8')
         elif rInt == 4:
             self.keyboard.press('9')
-            time.sleep(1.5)
+            time.sleep(0.85)
             self.keyboard.release('9')
         else:
             self.keyboard.press('0')
-            time.sleep(1.5)
-            self.keyboard.release('0')'''
-        
+            time.sleep(0.85)
+            self.keyboard.release('0')
+        with open(self.file_path, 'w') as file1:
+            file1.write(' ')
+        self.game = csGame()
         obs = self.game.observe()
         return obs
 

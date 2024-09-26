@@ -18,11 +18,11 @@ env = gym.make("gymEnv:cs-v0")
 
 time.sleep(5)
 # set up matplotlib
-'''is_ipython = 'inline' in matplotlib.get_backend()
+is_ipython = 'inline' in matplotlib.get_backend()
 if is_ipython:
     from IPython import display
 
-plt.ion()'''
+plt.ion()
 
 maxReward = -10000
 
@@ -52,15 +52,16 @@ class ReplayMemory(object):
     def __len__(self):
         return len(self.memory)
     
-
+global ept 
+ept = 0.0
 class DQN(nn.Module):
 
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
         self.layer1 = nn.Linear(n_observations, 512)
-        self.layer2 = nn.Linear(512, 512)
-        self.layer3 = nn.Linear(512, 512)
-        self.layer4 = nn.Linear(512, n_actions)
+        self.layer2 = nn.Linear(512, 128)
+        self.layer3 = nn.Linear(128, 128)
+        self.layer4 = nn.Linear(128, n_actions)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
@@ -79,11 +80,11 @@ class DQN(nn.Module):
 # TAU is the update rate of the target network
 # LR is the learning rate of the `AdamW optimizer
 BATCH_SIZE = 128
-GAMMA = 0.985
-EPS_START = 0.9
+GAMMA = 0.99
+EPS_START = 0.95
 EPS_END = 0.05
-EPS_DECAY = 100000
-TAU = 0.02
+EPS_DECAY = 16000
+TAU = 0.005
 LR = 1e-4
 
 # Get number of actions from gym action space
@@ -92,14 +93,14 @@ n_actions = env.action_space.n
 state = env.reset()
 n_observations = len(state)
 
-#policy_net = DQN(n_observations, n_actions).to(device)
-#target_net = DQN(n_observations, n_actions).to(device)
-policy_net = torch.load('nettFile')
-target_net = torch.load('nettFile')
+policy_net = DQN(n_observations, n_actions).to(device)
+target_net = DQN(n_observations, n_actions).to(device)
+#policy_net = torch.load('FinFile')
+#target_net = torch.load('FinFile')
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(500000)
+memory = ReplayMemory(1000000)
 
 
 steps_done = 0
@@ -110,6 +111,9 @@ def select_action(state):
     sample = random.random()
     eps_threshold = EPS_END + (EPS_START - EPS_END) * \
         math.exp(-1. * steps_done / EPS_DECAY)
+    #("epsThres =", eps_threshold)
+    global ept
+    ept = eps_threshold
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
@@ -125,29 +129,29 @@ episode_durations = []
 episode_rewards = []
 
 def plot_durations(show_result=False):
-    '''plt.figure(1)
+    plt.figure(2)
     durations_t = torch.tensor(episode_rewards, dtype=torch.float)
     if show_result:
         plt.title('Result')
     else:
         plt.clf()
         plt.title('Training...')
-    plt.xlabel('Episode')
-    plt.ylabel('Reward Value')
+    plt.xlabel('X pos')
+    plt.ylabel('Y pos')
     plt.plot(durations_t.numpy())
     # Take 100 episode averages and plot them too
     if len(durations_t) >= 100:
         means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
         means = torch.cat((torch.zeros(99), means))
-        #plt.plot(means.numpy())'''
+        plt.plot(means.numpy())
 
-    '''plt.pause(0.001)  # pause a bit so that plots are updated
+    plt.pause(0.001)  # pause a bit so that plots are updated
     if is_ipython:
         if not show_result:
             display.display(plt.gcf())
             display.clear_output(wait=True)
         else:
-            display.display(plt.gcf())'''
+            display.display(plt.gcf())
 
 
 
@@ -207,7 +211,7 @@ def optimize_model():
 
 
 if torch.cuda.is_available() or torch.backends.mps.is_available():
-    num_episodes = 6000
+    num_episodes = 60000
 else:
     num_episodes = 50
 
@@ -230,6 +234,7 @@ listener.start()
 for i_episode in range(num_episodes):
     print(stop_loop)
     if stop_loop:
+        stop_loop = False
         time.sleep(60)
 
     # Initialize the environment and get its state
@@ -241,8 +246,10 @@ for i_episode in range(num_episodes):
     for t in count():
         stp += 1
         action = select_action(state)
+        #print(action)
         observation, reward, terminated, truncated, _ = env.step(action.item())
-        print(observation[0], observation[1], observation[2], observation[4], observation[5], observation[6], "\n\n")
+        #print(observation[0], observation[1], observation[2], observation[4], observation[5], observation[6], "\n")
+        #print(reward, "\n")
         '''if reward > 100000 and observation[0] < 3808:
             print("REWARD TOO BIG")
             time.sleep(1000)'''
@@ -250,8 +257,9 @@ for i_episode in range(num_episodes):
         ep_reward += reward
         reward = torch.tensor([reward], device=device)
         done = terminated or truncated
-
+        print("Velo =", math.sqrt((observation[4] ** 2) + (observation[5] ** 2)))
         if terminated:
+            print(i_episode)
             next_state = None
         else:
             next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
@@ -262,6 +270,10 @@ for i_episode in range(num_episodes):
         #print(action)
         # Move to the next state
         state = next_state
+
+        if observation[4] == 0:
+            print(observation[0], observation[1], observation[2], observation[4], observation[5], observation[6])
+            print("problem probably")
 
         # Perform one step of the optimization (on the policy network)
         optimize_model()
@@ -278,20 +290,21 @@ for i_episode in range(num_episodes):
             
             episode_durations.append(t + 1)
             episode_rewards.append(ep_reward)
-            print(ep_reward)
-            print(maxReward)
+            #print(ep_reward)
+            #print(maxReward)
+            print(ept)
             if(ep_reward > maxReward):
                 maxReward = ep_reward
                 print("NEW MAX REWARD")
                 torch.save(target_net, 'maxNet')
             print(stp)
-            torch.save(target_net, 'nettFile')
-            #plot_durations()
+            torch.save(policy_net, 'Fin2File')
+            plot_durations()
             break
 
 listener.join()
 
-torch.save(target_net, 'nettFile')
+torch.save(target_net, 'Fin2File')
 print('Complete')
 plot_durations(show_result=True)
 plt.ioff()

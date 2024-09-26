@@ -26,7 +26,8 @@ public:
     pair<double, double> calculateMB(vector<vector<double>>& face, vector<double>& playerPos);
     double findDist(vector<vector<double>>& face, vector<double>& playerPos, double ang);
     bool isInBlock(vector<double>& playerPos, int blockIndex);
-    
+    int isOnBlock(vector<double>& playerPos);
+    int curBlockStart(vector<double>& playerPos);
     double prevXPos;
     double prevYPos;
     double prevZPos;
