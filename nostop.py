@@ -3,7 +3,7 @@ import time
 
 def move_mouse():
     time.sleep(5)
-    for _ in range(10000):  # Repeat the movement 10 times
+    for _ in range(30000):  # Repeat the movement 10 times
         # Get the current mouse position
         x, y = pyautogui.position()
         
