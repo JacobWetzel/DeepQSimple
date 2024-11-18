@@ -53,16 +53,18 @@ class DQN(nn.Module):
 
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 64)
-        self.layer2 = nn.Linear(64, 64)
-        self.layer3 = nn.Linear(64, n_actions)
+        self.layer1 = nn.Linear(n_observations, 32)
+        self.layer2 = nn.Linear(32, 16)
+        self.layer3 = nn.Linear(16, 16)
+        self.layer4 = nn.Linear(16, n_actions)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        return self.layer3(x)
+        x = F.relu(self.layer3(x))
+        return self.layer4(x)
     
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
@@ -72,13 +74,13 @@ class DQN(nn.Module):
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the `AdamW optimizer
-BATCH_SIZE = 1280
+BATCH_SIZE = 128
 GAMMA = 0.9
-EPS_START = 0.9
+EPS_START = 0.99
 EPS_END = 0.05
 EPS_DECAY = 1000
 TAU = 0.005
-LR = 1e-4
+LR = 1.09e-3
 
 # Get number of actions from gym action space
 n_actions = env.action_space.n
@@ -88,10 +90,12 @@ n_observations = len(state)
 
 policy_net = DQN(n_observations, n_actions).to(device)
 target_net = DQN(n_observations, n_actions).to(device)
-target_net.load_state_dict(policy_net.state_dict())
+#policy_net = torch.load("tNet")
+#target_net = torch.load("tNet")
 
+target_net.load_state_dict(policy_net.state_dict())
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(10000)
+memory = ReplayMemory(100000)
 
 
 steps_done = 0
@@ -102,6 +106,7 @@ def select_action(state):
     sample = random.random()
     eps_threshold = EPS_END + (EPS_START - EPS_END) * \
         math.exp(-1. * steps_done / EPS_DECAY)
+    print(eps_threshold)
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
@@ -146,6 +151,7 @@ def plot_durations(show_result=False):
 def optimize_model():
     if len(memory) < BATCH_SIZE:
         return
+    #print(len(memory))
     transitions = memory.sample(BATCH_SIZE)
     # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
     # detailed explanation). This converts batch-array of Transitions
@@ -194,7 +200,7 @@ def optimize_model():
 if torch.cuda.is_available() or torch.backends.mps.is_available():
     num_episodes = 6000
 else:
-    num_episodes = 50
+    num_episodes = 5000
 
 for i_episode in range(num_episodes):
     # Initialize the environment and get its state
@@ -205,9 +211,11 @@ for i_episode in range(num_episodes):
         observation, reward, terminated, truncated, _ = env.step(action.item())
         reward = torch.tensor([reward], device=device)
         done = terminated or truncated
+        #print(observation)
 
         if terminated:
             next_state = None
+            print("term reward", reward)
         else:
             next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
 
@@ -227,7 +235,7 @@ for i_episode in range(num_episodes):
         for key in policy_net_state_dict:
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
         target_net.load_state_dict(target_net_state_dict)
-
+        torch.save(target_net, "tNet")
         if done:
             episode_durations.append(t + 1)
             plot_durations()
